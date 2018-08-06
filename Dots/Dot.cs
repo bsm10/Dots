@@ -151,7 +151,7 @@ namespace DotsGame
         /// </summary>
         public List<Dot> NeiborDots { get; } = new List<Dot>();
         public bool Fixed { get; set; }
-        public int CountBlockedDots { get=>BlokingDots.Count; }
+        public int CountBlockedDots => BlokingDots.Count;
         public bool Selected { get; set; }
         public int Own { get; set; }
         private int rating;
@@ -240,11 +240,15 @@ namespace DotsGame
         /// </summary>
         public void Restore()
         {
+            Blocked = false;
             BlokingDots.Clear();
             Own = 0;
             iNumberPattern = 0;
+            IndexRelation = 0;
             Rating = 0;
             Tag = "";
+            NeiborDots.Clear();
+            UnmarkDot();
         }
         public void UnmarkDot()
         {

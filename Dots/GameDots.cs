@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace DotsGame
 {
@@ -507,11 +508,18 @@ namespace DotsGame
         //private bool IsFreeflag;
         private bool DotIsBlocked(Dot dot)
         {
-             if (Counter == 0) DotChecked = dot; 
+            if (Counter == 0)
+            {
+                DotChecked = dot;
+            }
             
             dot.Marked = true;
             List<Dot> lst = NeiborDotsSNWE(dot);
-            if (dot.Fixed | (from d in lst where d.Fixed && !d.Blocked && d.Own == DotChecked.Own | d.Own == 0 select d).Count() > 0)
+            if (dot.Fixed | (from d in lst where 
+                             d.Fixed && !d.Blocked && d.Own == DotChecked.Own | 
+                             d.Own == 0 || 
+                             d.Own!= DotChecked.Own && d.Blocked
+                             select d).Count() > 0)
             {
                 DotChecked.Blocked = false;
                 return false;
@@ -519,7 +527,7 @@ namespace DotsGame
             Counter++;
             foreach (Dot d in lst)
             {
-                if(!d.Marked && d.Own == DotChecked.Own | d.Own == 0   )
+                if(!d.Marked && d.Own == DotChecked.Own & !d.Blocked | d.Own == 0)
                 {
                     if (!DotIsBlocked(d))
                     {
@@ -528,9 +536,7 @@ namespace DotsGame
                     }
                 }
             }
-            
             return true;
-
             ext:
             return false;
         }
@@ -696,10 +702,15 @@ namespace DotsGame
                             select dots;
             lst_blocked_dots.Clear(); lst_in_region_dots.Clear();
             foreach (Dot d in checkdots)
+            //foreach (Dot d in (from Dot dots in this
+            //                  where dots.Own != 0 | dots.Own == 0 & dots.Blocked
+            //                  orderby dots.Own == last_moveOwner
+            //                  select dots))
             {
                 UnmarkAllDots();
                 //if (DotIsFree(d, d.Own) == false)
-                if (DotIsBlocked(d) == true)
+
+                if (d.Blocked | DotIsBlocked(d) == true) 
                 {
                     //if (d.Own != 0)
                     //{
@@ -1121,7 +1132,7 @@ namespace DotsGame
         /// <summary>
         /// проверяет ход в результате которого окружение.
         /// </summary>
-        /// <param name="Owner">владелец проверянмых точек</param>
+        /// <param name="Owner">владелец проверяемых точек</param>
         /// <returns>Возвращает ход(точку) который завершает окружение</returns>
         private Dot CheckMove(int Owner)
         {
@@ -2620,7 +2631,6 @@ namespace DotsGame
 #endif
 #endregion
             counter_moves = 0;
-            //lst_best_move.Clear();
             lst_branch.Clear();
             
             //Проигрываем разные комбинации
@@ -2640,10 +2650,16 @@ namespace DotsGame
                         orderby random.Next()
                         select d;
 
-                if (q.Count() > 0) best_move = q.Where(dt => Distance(dt, LastMove) < 3).FirstOrDefault();
-
-                else best_move = q.FirstOrDefault();
-                best_move.Tag = "Random";
+                //if (q.Count() > 0) best_move = q.Where(dt => Distance(dt, LastMove) < 3).FirstOrDefault();
+                if (q.Count() > 0)
+                {
+                    best_move = q.FirstOrDefault();//q.Where(dt => Distance(dt, LastMove) < 3).FirstOrDefault();
+                    best_move.Tag = "Random";
+                }
+                else
+                {
+                    best_move = null;
+                }
             }
             #endregion
 
@@ -3032,42 +3048,7 @@ namespace DotsGame
         {
             return nBlockedDots + nRegionDots / 2.0f - 1;//Формула Пика
         }
-//        private void SetLevel(int iLevel = 1)
-//        {
-//            switch (iLevel)
-//            {
-//                case 0://easy
-//                    SkillLevel = 10;
-//                    SkillDepth = 5;
-//                    SkillNumSq = 3;
-//                    break;
-//                case 1://mid
-//                    SkillLevel = 30;
-//                    SkillDepth = 10;//20;
-//                    SkillNumSq = 4;
-//                    break;
-//                case 2://hard
-//                    SkillLevel = 50;
-//                    SkillDepth = 50;//50;
-//                    SkillNumSq = 2;//5;
-//                    break;
-//            }
-//#if DEBUG
-//#endif
-//        }
-        private int _pause = 10;
-        public int pause
-        {
-            get
-            {
-                return _pause;
-                //
-            }
-            set
-            {
-                _pause = value;
-            }
-        }
+        public int pause { get; set; } = 10;
 
         private static void AddToList(List<Dot> ld, IEnumerable<Dot> pattern, int dx, int dy)
         {
@@ -3211,24 +3192,18 @@ namespace DotsGame
                 pl_move = PickComputerMove(LastMove, cancellationToken);
             }
 
-            if (pl_move == null)
-            {
-                //MessageBox.Show("You win!!! \r\n" + game.Statistic());
-                //NewGame();
-                return 1;
-            }
+            //if (pl_move == null)
+            //{
+            //    //MessageBox.Show("Game over");
+            //    //NewGame();
+            //    return 1;
+            //}
             pl_move.Own = Player;
 
             if (MakeMove(pl_move, addForDraw: true) == -1) return -1;
 
             if (IsGameOver)
             {
-                //StatusMsg.textMsg = "Game over! \r\n" + GameEngineUWP.Statistic();
-                //await GameEngineUWP.Pause(5);
-                //GameEngineUWP.NewGame();
-                //StatusMsg.textMsg = "New game started!" + GameEngineUWP.Statistic();
-                //await GameEngineUWP.Pause(1);
-
                 return 1;
             }
             //StatusMsg.ColorMsg = player_move == 1 ? GameEngineUWP.colorGamer2 : GameEngineUWP.colorGamer1;
@@ -3239,6 +3214,15 @@ namespace DotsGame
             //});
 
         }
+        public string Statistic()
+        {
+            var q5 = from Dot d in Dots where d.Own == 1 select d;
+            var q6 = from Dot d in Dots where d.Own == 2 select d;
+            var q7 = from Dot d in Dots where d.Own == 1 & d.Blocked select d;
+            var q8 = from Dot d in Dots where d.Own == 2 & d.Blocked select d;
+            return q8.Count().ToString() + ":" + q7.Count().ToString();
+        }
+
         public int MovePlayer(Dot pl_move)
         {
             if (MakeMove(pl_move, addForDraw: true) == -1)
@@ -3255,17 +3239,17 @@ namespace DotsGame
 
         public object Current => Dots[position];
 
-        public List<Dot> Board
-        {
-            get => throw new NotImplementedException();
+        //public List<Dot> Board
+        //{
+        //    get => throw new NotImplementedException();
 
-            set => throw new NotImplementedException();
-        }
+        //    set => throw new NotImplementedException();
+        //}
 
-        public State CurrentPlayer => throw new NotImplementedException();
+        //public State CurrentPlayer => throw new NotImplementedException();
 
-        public State CurrentOpponent => throw new NotImplementedException();
+        //public State CurrentOpponent => throw new NotImplementedException();
 
-        public State Winner => throw new NotImplementedException();
+        //public State Winner => throw new NotImplementedException();
     }
 }
