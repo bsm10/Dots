@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace DotsGame
 {
@@ -148,10 +147,10 @@ namespace DotsGame
                 d.Restore();
             }
             lnks.Clear();
+            ListLinksForDrawing.Clear();
             ListMoves.Clear();
             stackMoves.Clear();
             dots_in_region.Clear();
-
         }
         public class DotEq : EqualityComparer<Dot>
         {
@@ -515,11 +514,16 @@ namespace DotsGame
             
             dot.Marked = true;
             List<Dot> lst = NeiborDotsSNWE(dot);
-            if (dot.Fixed | (from d in lst where 
-                             d.Fixed && !d.Blocked && d.Own == DotChecked.Own | 
-                             d.Own == 0 || 
-                             d.Own!= DotChecked.Own && d.Blocked
+            //if (dot.Fixed | (from d in lst where 
+            //                 d.Fixed && !d.Blocked && d.Own == DotChecked.Own | 
+            //                 d.Own == 0 || 
+            //                 d.Own!= DotChecked.Own && d.Blocked
+            //                 select d).Count() > 0)
+            if (dot.Fixed | (from d in lst
+                             where d.Fixed & d.Own == DotChecked.Own |
+                                   d.Fixed & d.Own == 0
                              select d).Count() > 0)
+
             {
                 DotChecked.Blocked = false;
                 return false;
@@ -527,7 +531,9 @@ namespace DotsGame
             Counter++;
             foreach (Dot d in lst)
             {
-                if(!d.Marked && d.Own == DotChecked.Own & !d.Blocked | d.Own == 0)
+                if(!d.Marked && d.Own == DotChecked.Own & !d.Blocked | 
+                                d.Own == 0 |
+                                d.Own != DotChecked.Own & d.Blocked)
                 {
                     if (!DotIsBlocked(d))
                     {
@@ -3117,15 +3123,15 @@ namespace DotsGame
         public void Reset()
         { position = 0; }
 
-        public IScore GetScore()
-        {
-            throw new NotImplementedException();
-        }
+        //public IScore GetScore()
+        //{
+        //    throw new NotImplementedException();
+        //}
 
-        public State GetSpaceState(int row, int column)
-        {
-            throw new NotImplementedException();
-        }
+        //public State GetSpaceState(int row, int column)
+        //{
+        //    throw new NotImplementedException();
+        //}
 
         //public bool IsValidMove(Dot move)
         //{

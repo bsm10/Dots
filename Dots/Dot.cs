@@ -154,27 +154,7 @@ namespace DotsGame
         public int CountBlockedDots => BlokingDots.Count;
         public bool Selected { get; set; }
         public int Own { get; set; }
-        private int rating;
-        public int Rating 
-        {
-            get
-            {
-                return rating;
-            }
-            set
-            {
-                rating = value;
-                //foreach(Dot d in NeiborDots)
-                //{
-                //    //if(Math.Sqrt(Math.Pow(Math.Abs(d.x -x),2) + Math.Pow(Math.Abs(d.y -y),2))==1)
-                //    //{
-                //        if (rating < d.rating) d.Rating = rating;
-                //        else rating = d.Rating;
-                //    //}
-                    
-                //}
-            }
-        }
+        public int Rating { get; set; }
         public bool Marked { get; set; }
         public string Tag { get; set; } = string.Empty;
 
@@ -193,16 +173,7 @@ namespace DotsGame
         }
 
         public bool BonusDot { get; set; }
-        public Dot DotCopy
-        {
-            get
-            {
-                return (Dot)MemberwiseClone();
-                //Dot d = new Dot(x,y,Own);
-                //d.Blocked=Blocked;
-                //return d;
-            }
-        }
+        public Dot DotCopy => (Dot)MemberwiseClone();//Dot d = new Dot(x,y,Own);//d.Blocked=Blocked;//return d;
         public int iNumberPattern { get; set; }
 
         public Dot(int x, int y, int Owner = 0, int NumberPattern = 0, int Rating = 0)
