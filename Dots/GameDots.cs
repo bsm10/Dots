@@ -670,6 +670,8 @@ namespace DotsGame
         /// <returns>количество окруженных точек, -1 если недопустимый ход; </returns>
         private int MakeMove(Dot dot, int Owner = 0, bool addForDraw = false)//
         {
+            int Count_blocked_before; int Count_blocked_after;
+            Count_blocked_before = (from Dot d in this where d.Blocked == true select d).Count();
             if (CheckValidMove(this[dot.X, dot.Y]))
             {
                 if (Owner != 0) dot.Own = Owner;
@@ -677,10 +679,11 @@ namespace DotsGame
             }
             else return -1;//в случае невозможного хода
             //--------------------------------
-            int res = CheckBlocked(dot.Own);
+            Count_blocked_after = CheckBlocked(dot.Own);
+            //int res = CheckBlocked(dot.Own);
             //int res = CheckBlocked2(dot.Own);
             //--------------------------------
-            count_blocked_dots = (from Dot d in Dots where d.Blocked select d).Count();
+            //count_blocked_dots = (from Dot d in Dots where d.Blocked select d).Count();
             if (addForDraw)
             {
                 ListMoves.Add(Dots[IndexDot(dot.X, dot.Y)]);
@@ -688,7 +691,7 @@ namespace DotsGame
                 _ListLinksForDrawing = lnks.ToList();
             }
 
-            return res;
+            return Count_blocked_after - Count_blocked_before;//res;
         }
 
 
@@ -706,42 +709,24 @@ namespace DotsGame
                             where dots.Own != 0 | dots.Own == 0 & dots.Blocked
                             orderby dots.Own == last_moveOwner
                             select dots;
-            lst_blocked_dots.Clear(); lst_in_region_dots.Clear();
-            foreach (Dot d in checkdots)
-            //foreach (Dot d in (from Dot dots in this
-            //                  where dots.Own != 0 | dots.Own == 0 & dots.Blocked
-            //                  orderby dots.Own == last_moveOwner
-            //                  select dots))
+            Lst_blocked_dots.Clear(); Lst_in_region_dots.Clear();
+            foreach (Dot d  in checkdots)
             {
                 UnmarkAllDots();
-                //if (DotIsFree(d, d.Own) == false)
-
                 if (d.Blocked | DotIsBlocked(d) == true) 
                 {
-                    //if (d.Own != 0)
-                    //{
-                    //    d.Blocked = true;
-                    //    foreach(Dot d_block in (from neibordots in NeiborDotsSNWE(d)
-                    //    where neibordots.Own == 0 || neibordots.Own == d.Own
-                    //    select neibordots))
-                    //    {
-                    //        d_block.Blocked = true;
-                    //    }
-
-                    //}
                     d.Blocked = true;
                     d.IndexRelation = 0;
-                    var q1 = from Dot dots in this where dots.BlokingDots.Contains(d) select dots;
+                    IEnumerable<Dot> q1 = from Dot dots in this where dots.BlokingDots.Contains(d) select dots;
                     if (q1.Count() == 0)
                     {
                         UnmarkAllDots();
                         MarkDotsInRegion(d, d.Own);
-
-                        foreach (Dot dr in lst_in_region_dots)
+                        foreach (Dot dr in Lst_in_region_dots)
                         {
                             win_player = dr.Own;
                             count_in_region++;
-                            foreach (Dot bd in lst_blocked_dots)
+                            foreach (Dot bd in Lst_blocked_dots)
                             {
                                 if (bd.Own != 0) counter += 1;
                                 if (dr.BlokingDots.Contains(bd) == false & bd.Own != 0 & dr.Own != bd.Own)
@@ -757,10 +742,12 @@ namespace DotsGame
                     d.Blocked = false;
                 }
             }
-            //RescanBlockedDots();
-            if (lst_blocked_dots.Count == 0) win_player = 0;
-            return lst_blocked_dots.Count;
+            //if (Lst_blocked_dots.Count == 0) win_player = 0;
+            //return Lst_blocked_dots.Count;
+            return (from Dot d in this where d.Blocked==true select d).Count();
+
         }
+
         private int CheckBlocked2(int Owner)
         {
             var checkdots = from Dot d in this
@@ -775,16 +762,13 @@ namespace DotsGame
                                 select d2;
 
             
-            lst_blocked_dots = checkdots.ToList();
+            Lst_blocked_dots = checkdots.ToList();
 
 
-            return lst_blocked_dots.Count;
+            return Lst_blocked_dots.Count;
             //if (blocking_dots.Count() > 0) foreach (Dot d in blocking_dots) d.Blocked = true;
         }
 
-
-        private List<Dot> lst_blocked_dots = new List<Dot>();//список блокированных точек
-        private List<Dot> lst_in_region_dots = new List<Dot>();//список блокирующих точек
         /// <summary>
         /// Определяет блокирующие точки и устанавливает этим точкам поле InRegion=true 
         /// </summary>
@@ -794,9 +778,9 @@ namespace DotsGame
         {
             blocked_dot.Marked = true;
             //добавим точки которые попали в окружение
-            if (lst_blocked_dots.Contains(blocked_dot) == false)
+            if (Lst_blocked_dots.Contains(blocked_dot) == false)
             {
-                lst_blocked_dots.Add(blocked_dot);
+                Lst_blocked_dots.Add(blocked_dot);
             }
             //foreach (Dot _d in dts)
             foreach (Dot _d in NeiborDotsSNWE(blocked_dot))
@@ -804,7 +788,7 @@ namespace DotsGame
                 if (_d.Own != 0 & _d.Blocked == false & _d.Own != flg_own)//_d-точка которая окружает
                 {
                     //добавим в коллекцию точки которые окружают
-                    if (lst_in_region_dots.Contains(_d) == false) lst_in_region_dots.Add(_d);
+                    if (Lst_in_region_dots.Contains(_d) == false) Lst_in_region_dots.Add(_d);
                 }
                 else
                 {
@@ -3244,6 +3228,9 @@ namespace DotsGame
         }
 
         public object Current => Dots[position];
+
+        public List<Dot> Lst_blocked_dots { get; set; } = new List<Dot>();
+        public List<Dot> Lst_in_region_dots { get; set; } = new List<Dot>();
 
         //public List<Dot> Board
         //{
