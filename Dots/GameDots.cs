@@ -134,7 +134,7 @@ namespace DotsGame
                 }
             }
 
-            lnks = new List<Links>();
+            ListLinks = new List<Links>();
             ListMoves = new List<Dot>();
             stackMoves = new List<Dot>();
             dots_in_region = new List<Dot>();
@@ -146,7 +146,7 @@ namespace DotsGame
             {
                 d.Restore();
             }
-            lnks.Clear();
+            ListLinks.Clear();
             ListLinksForDrawing.Clear();
             ListMoves.Clear();
             stackMoves.Clear();
@@ -688,7 +688,7 @@ namespace DotsGame
             {
                 ListMoves.Add(Dots[IndexDot(dot.X, dot.Y)]);
                 LinkDots();//перестроить связи точек
-                _ListLinksForDrawing = lnks.ToList();
+                ListLinksForDrawing = ListLinks.ToList();
             }
 
             return Count_blocked_after - Count_blocked_before;//res;
@@ -828,42 +828,28 @@ namespace DotsGame
                 }
             }
         }
-        //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        private List<Links> lnks;
-        public List<Links> ListLinks 
-        { 
-            get {return lnks;}
-        }
-        private List<Links> _ListLinksForDrawing = new List<Links>();
-        public List<Links> ListLinksForDrawing
-        {
-            get { return _ListLinksForDrawing; }
-        }
+        public List<Links> ListLinks { get; private set; }
+        public List<Links> ListLinksForDrawing { get; private set; } = new List<Links>();
+
         /// <summary>
         /// устанавливает связь между двумя точками и возвращает массив связей 
         /// </summary>
         private void LinkDots()
         {
-            lnks.Clear();
-            var qry = from Dot d1 in this
-                      where d1.BlokingDots.Count > 0
-                      from Dot d2 in this
-                          //where d2.Own == d1.Own && d1.Blocked == d2.Blocked && d2.BlokingDots.Count > 0
-                      where d2.Own == d1.Own && d1.Blocked == d2.Blocked
-                      & Distance(d1, d2) < 2 & Distance(d1, d2) > 0 && d2.BlokingDots.Count > 0
-                      || d2.Own == d1.Own && d1.Blocked == d2.Blocked && Distance(d1, d2) == 1 
-                      //|| !d1.Blocked & d2.Blocked & Distance(d1, d2) == 1
+            ListLinks.Clear();
+            ListLinks = (from Dot d1 in this
+                         where d1.BlokingDots.Count > 0
+                         from Dot d2 in this
+                         where d2.Own == d1.Own && d1.Blocked == d2.Blocked
+                         && d2.BlokingDots.Count > 0
+                         && Distance(d1, d2) < 2 
+                         select new Links(d1, d2)).Distinct(new LinksComparer()).ToList(); //обновляем основной массив связей - lnks              
 
-                      select new Links(d1, d2);
-
-            var temp = qry.Distinct(new LinksComparer());
-            lnks = temp.ToList(); //обновляем основной массив связей - lnks              
-
-            qry = from Links l1 in lnks
-                  from Links l2 in lnks
-                  where l1.Dot1.Equals(l2.Dot1) && Distance(l1.Dot2, l2.Dot2) < 2
-                  select new Links(l1.Dot2, l2.Dot2);
-            lnks.AddRange(qry.ToList());
+            //qry = from Links l1 in lnks
+            //      from Links l2 in lnks
+            //      where l1.Dot1.Equals(l2.Dot1) && Distance(l1.Dot2, l2.Dot2) < 2
+            //      select new Links(l1.Dot2, l2.Dot2);
+            //lnks.AddRange(qry.ToList());
 
 
         }
@@ -2758,7 +2744,7 @@ namespace DotsGame
 
 #if DEBUG
             sW2.Stop();
-            strDebug = strDebug + "\r\nCheckPattern_vilochka -" + sW2.Elapsed.Milliseconds.ToString();
+            strDebug = string.Empty + "\r\nCheckPattern_vilochka -" + sW2.Elapsed.Milliseconds.ToString();
             
             sW2.Reset();
             sW2.Start();
@@ -2781,7 +2767,7 @@ namespace DotsGame
             #region DEBUG
 #if DEBUG
             sW2.Stop();
-            strDebug = strDebug + "\r\nCheckPattern2Move(pl2) -" + sW2.Elapsed.Milliseconds.ToString();
+            strDebug = string.Empty + "\r\nCheckPattern2Move(pl2) -" + sW2.Elapsed.Milliseconds.ToString();
             sW2.Reset();
             sW2.Start();
             DebugInfo.textDBG = "CheckPatternVilkaNextMove...";
@@ -2806,7 +2792,7 @@ namespace DotsGame
 
 #if DEBUG
             sW2.Stop();
-            strDebug = strDebug + "\r\nCheckPatternVilkaNextMove -" + sW2.Elapsed.Milliseconds.ToString();
+            strDebug = string.Empty + "\r\nCheckPatternVilkaNextMove -" + sW2.Elapsed.Milliseconds.ToString();
             
             sW2.Reset();
             sW2.Start();
@@ -2878,8 +2864,8 @@ namespace DotsGame
 
 #if DEBUG
             sW2.Stop();
-            strDebug = strDebug + "/r/nCheckPatternMove(pl2) -" + sW2.Elapsed.Milliseconds.ToString();
-            DebugInfo.textDBG1 = strDebug;
+            strDebug = string.Empty + "/r/nCheckPatternMove(pl2) -" + sW2.Elapsed.Milliseconds.ToString();
+            DebugInfo.textDBG1 = string.Empty;
             sW2.Reset();
 #endif
 
