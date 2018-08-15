@@ -261,7 +261,7 @@ namespace DotsGame
         /// </summary>
         /// <param name="dot"> точка Dot из массива точек типа ArrayDots </param>
         /// <returns> список точек </returns>
-        private List<Dot> NeiborDotsSNWE(Dot dot)//SNWE -S -South, N -North, W -West, E -East
+        private List<Dot> NeighborDotsSNWE(Dot dot)//SNWE -S -South, N -North, W -West, E -East
         {
             Dot[] dts = new Dot[4] {
                                     this[dot.X + 1, dot.Y],
@@ -271,7 +271,7 @@ namespace DotsGame
                                     };
             return dts.ToList();
         }
-        private List<Dot> NeiborDots(Dot dot)
+        private List<Dot> NeighborDots(Dot dot)
         {
             //List<Dot> l = new List<Dot>();
             //foreach (Dot d in (from neibordots in Dots
@@ -377,17 +377,23 @@ namespace DotsGame
             return (x >= 0 && x < BoardWidth &&
                     y >= 0 && y < BoardHeight);
         }
-        /// <summary>
-        /// Проверка, находится ли точка на игровой доске
-        /// </summary>
-        /// <returns></returns>
-        //private bool DotIndexCheck(Dot dot)
+        ///// <summary>
+        ///// Проверка, находится ли точка на игровой доске
+        ///// </summary>
+        ///// <returns></returns>
+        ////private bool DotIndexCheck(Dot dot)
         //{
         //    bool v = dot == null;
         //    return v ? false : (dot.x >= 0 && dot.x < BoardWidth &&
         //            dot.y >= 0 && dot.y < BoardHeight);
         //}
-        private List<Dot> EmptyNeibourDots(int Owner)//список не занятых точек возле определенной точки
+
+    /// <summary>
+    /// список не занятых точек возле всех точек
+    /// </summary>
+    /// <param name="Owner"></param>
+    /// <returns></returns>
+        private List<Dot> EmptyNeibourDots(int Owner)
         {
             List<Dot> ld = new List<Dot>();
             foreach (Dot d in Dots)
@@ -405,6 +411,7 @@ namespace DotsGame
             }
             return ld;
         }
+
         private int MakeIndexRelation(Dot dot)
         {
             if (dot.NeiborDots.Count > 0)
@@ -448,7 +455,7 @@ namespace DotsGame
             }
             foreach (Dot d in blockedDots)
             {
-                foreach (Dot dn in NeiborDotsSNWE(d))
+                foreach (Dot dn in NeighborDotsSNWE(d))
                 {
                     if(dn.Own==d.Own || dn.Own==0)
                     {
@@ -513,7 +520,7 @@ namespace DotsGame
             }
             
             dot.Marked = true;
-            List<Dot> lst = NeiborDotsSNWE(dot);
+            List<Dot> lst = NeighborDotsSNWE(dot);
             //if (dot.Fixed | (from d in lst where 
             //                 d.Fixed && !d.Blocked && d.Own == DotChecked.Own | 
             //                 d.Own == 0 || 
@@ -783,7 +790,7 @@ namespace DotsGame
                 Lst_blocked_dots.Add(blocked_dot);
             }
             //foreach (Dot _d in dts)
-            foreach (Dot _d in NeiborDotsSNWE(blocked_dot))
+            foreach (Dot _d in NeighborDotsSNWE(blocked_dot))
             {
                 if (_d.Own != 0 & _d.Blocked == false & _d.Own != flg_own)//_d-точка которая окружает
                 {
@@ -1097,11 +1104,11 @@ namespace DotsGame
 
         private Dot ОбщаяТочкаSNWE(Dot d1, Dot d2)//*1d1* 
         {
-            return NeiborDotsSNWE(d1).Intersect(NeiborDotsSNWE(d2), new DotEq()).FirstOrDefault();
+            return NeighborDotsSNWE(d1).Intersect(NeighborDotsSNWE(d2), new DotEq()).FirstOrDefault();
         }
         private List<Dot> ОбщаяТочка(Dot d1, Dot d2)
         {
-            return NeiborDots(d1).Intersect(NeiborDots(d2), new DotEq()).ToList();
+            return NeighborDots(d1).Intersect(NeighborDots(d2), new DotEq()).ToList();
         }
 
         //==============================================================================================
@@ -1125,7 +1132,7 @@ namespace DotsGame
                             && Distance(d1, d2) == 2
                       from Dot d in this
                       where CheckValidMove(d) && Distance(d, d1) < 2 && Distance(d, d2) < 2 
-                                && NeiborDotsSNWE(d).Where(dt=>dt.Own==Owner).Count() <= 2
+                                && NeighborDotsSNWE(d).Where(dt=>dt.Own==Owner).Count() <= 2
                       select d;
             
             foreach (Dot d in qry.Distinct(new DotEq()).ToList())
@@ -1162,7 +1169,7 @@ namespace DotsGame
             {
                 foreach (Dot d in qry)
                 {
-                    foreach (Dot dot_move in NeiborDots(d))
+                    foreach (Dot dot_move in NeighborDots(d))
                     {
                         if (CheckValidMove(dot_move))
                         {
@@ -1194,7 +1201,7 @@ namespace DotsGame
         // + m +
         private List<Dot> Проверка1(int Owner) 
         {
-            var qry = from Dot d1 in Board_NotEmptyNonBlockedDots.Where(dt => dt.Own == Owner)
+            IEnumerable<Dot> qry = from Dot d1 in Board_NotEmptyNonBlockedDots.Where(dt => dt.Own == Owner)
                       where d1.Own == Owner && !d1.Blocked
                       from Dot d2 in Board_NotEmptyNonBlockedDots.Where(dt => dt.Own == Owner)
                       where d2.Own == Owner && !d2.Blocked
@@ -2438,7 +2445,11 @@ namespace DotsGame
             //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
             return null;//если никаких паттернов не найдено возвращаем нуль
         }
-
+        /// <summary>
+        /// Поиск паттерна, где точка может соединить разные цепочки (с разным IndexRelation)
+        /// </summary>
+        /// <param name="Owner"></param>
+        /// <returns>Список точек, которые могут замкнуть регион</returns>
         private List<Dot> CheckPatternMove(int Owner)
         {
             var qry = from Dot d1 in this
@@ -2470,14 +2481,31 @@ namespace DotsGame
                 qry = from Dot d1 in this
                       where d1.Own == Owner && !d1.Blocked
                       from Dot d2 in this
-                      where d2.IndexRelation == d1.IndexRelation && !d2.Blocked && Distance(d1, d2) < 3.5f & Distance(d1, d2) >= 3f
+                      where d2.IndexRelation == d1.IndexRelation && !d2.Blocked && Distance(d1, d2) < 3.5f && Distance(d1, d2) >= 3f
                       from Dot de1 in EmptyNeibourDots(Owner)
                       where Distance(d1, de1) == 1
                       from Dot de2 in EmptyNeibourDots(Owner)
                       where Distance(d1, de2) < 2 && Distance(de1, de2) == 1
                       from Dot de3 in EmptyNeibourDots(Owner)
-                      where  Distance(de3, d2)  < 2 && Distance(de3, de1) < 2
+                      where Distance(de3, d2) < 2 && Distance(de3, de1) < 2
                       select new Dot(de3.X, de3.Y, NumberPattern: 777, Rating: 1);
+
+                //qry = from Dot d1 in this
+                //      where d1.Own == Owner && !d1.Blocked
+                //      from Dot d2 in this
+                //      where d2.IndexRelation == d1.IndexRelation && !d2.Blocked && Distance(d1, d2) >= 3f && Distance(d1, d2) < 3.5f
+
+                //      from Dot de1 in NeighborDots(d1)
+                //      where de1.Own==0 && !de1.Blocked
+
+                //      from Dot de2 in NeighborDots(d2)
+                //      where de2.Own == 0 && !de2.Blocked
+
+                //      from Dot de3 in NeighborDotsSNWE(de1).Intersect(NeighborDotsSNWE(de2), new DotEq())
+                //      where CheckValidMove(de3)
+
+                //      select de3;//new Dot(de3.X, de3.Y, NumberPattern: 777, Rating: 1);
+
             }
             else
             {
@@ -2753,17 +2781,23 @@ namespace DotsGame
             #endregion
             #endregion
 
-            
+
 
             #region CheckPattern2Move проверяем ходы на два вперед на гарантированное окружение
 
-            List<Dot> ld_bm = CheckPattern2Move(pl2, true);
-            ld_bm.AddRange(CheckPatternVilka2x2(pl2, true));
-            ld_bm.AddRange(CheckPatternVilka2x2(pl2, false));
+            //List<Dot> ld_bm = CheckPattern2Move(pl2, true);
+            //ld_bm.AddRange(CheckPatternVilka2x2(pl2, true));
+            //ld_bm.AddRange(CheckPatternVilka2x2(pl2, false));
             //ld_bm.AddRange(CheckPattern2Move(pl1, true));
-            //ld_bm.AddRange(CheckPatternVilka2x2(pl1, true));
-            //ld_bm.AddRange(CheckPatternVilka2x2(pl1, false));
-            if (ld_bm.Count > 0)moves.AddRange(ld_bm);
+            ////ld_bm.AddRange(CheckPatternVilka2x2(pl1, true));
+            ////ld_bm.AddRange(CheckPatternVilka2x2(pl1, false));
+            //if (ld_bm.Count > 0)moves.AddRange(ld_bm);
+
+            moves.AddRange(CheckPattern2Move(pl2, true));
+            moves.AddRange(CheckPatternVilka2x2(pl2, true));
+            moves.AddRange(CheckPatternVilka2x2(pl2, false));
+            moves.AddRange(CheckPattern2Move(pl1, true));
+
             #region DEBUG
 #if DEBUG
             sW2.Stop();
@@ -2801,66 +2835,22 @@ namespace DotsGame
             #endregion
             #endregion
             #region CheckPattern
-            ld_bm = Проверка1(pl2);
-            if (ld_bm.Count > 0) moves.AddRange(ld_bm);
-
-            
-//            foreach (Dot dt in CheckPattern(pl2))
-//            {
-//                if (DotIndexCheck(dt))
-//                {
-//                    #region DEBUG
-//#if DEBUG
-//                    {
-//                        DebugInfo.lstDBG2.Add(dt.x + ":" + dt.y + " player" + pl2 + " - CheckPattern " + dt.iNumberPattern);
-//                    }
-//#endif
-//                    #endregion
-//                    if (CheckDot(dt, pl2) == false) moves.Add(dt);
-//                }
-//            }
-//            #region Debug
-//#if DEBUG
-//            sW2.Stop();
-//            strDebug = strDebug + "\r\nCheckPattern(pl2) -" + sW2.Elapsed.Milliseconds.ToString();
-//            sW2.Reset();
-//            sW2.Start();
-//            DebugInfo.textDBG = "CheckPattern(pl1)...";
-//#endif
-//            #endregion
-//            foreach (Dot dt in CheckPattern(pl1))
-//            {
-//                if (DotIndexCheck(dt))
-//                {
-//                    #region DEBUG
-//#if DEBUG
-//                    {
-//                        DebugInfo.lstDBG2.Add(dt.x + ":" + dt.y + " player" + pl1 + " - CheckPattern " + dt.iNumberPattern);
-//                    }
-//#endif
-//                    #endregion
-//                    if (CheckDot(dt, pl2) == false) moves.Add(dt);
-//                }
-//            }
-//            #region DEBUG
-//#if DEBUG
-//            sW2.Stop();
-//            strDebug = strDebug + "\r\nCheckPattern(pl1) -" + sW2.Elapsed.Milliseconds.ToString();
-//            sW2.Reset();
-//            sW2.Start();
-//            DebugInfo.textDBG = "CheckPatternMove...";
-//#endif
-//            #endregion
+            //ld_bm = Проверка1(pl2);
+            //if (ld_bm.Count > 0) moves.AddRange(ld_bm);
             #endregion
             #region CheckPatternMove
-            foreach (Dot dt in CheckPatternMove(pl2))
-            {
-                if (CheckValidMove(dt) && (CheckDot(dt, pl2) == false)) moves.Add(dt);
-            }
-            foreach (Dot dt in CheckPatternMove(pl1))
-            {
-                if (CheckValidMove(dt) && (CheckDot(dt, pl1) == false)) moves.Add(dt);
-            }
+            moves.AddRange(CheckPatternMove(pl2));
+            moves.AddRange(CheckPatternMove(pl1));
+            //foreach (Dot dt in CheckPatternMove(pl2))
+            //{
+            //    moves.Add(dt);
+            //    //if (CheckValidMove(dt) && (CheckDot(dt, pl2) == false)) moves.Add(dt);
+            //}
+            //foreach (Dot dt in CheckPatternMove(pl1))
+            //{
+            //    moves.Add(dt);
+            //    //if (CheckValidMove(dt) && (CheckDot(dt, pl1) == false)) moves.Add(dt);
+            //}
 
 #if DEBUG
             sW2.Stop();
@@ -2869,9 +2859,8 @@ namespace DotsGame
             sW2.Reset();
 #endif
 
-#endregion
-            var result = moves.Distinct(new DotEq());
-            return result.ToList();
+            #endregion
+            return moves.Distinct(new DotEq()).ToList();
         }
         //==================================================================================================================
         
@@ -3043,18 +3032,9 @@ namespace DotsGame
 
             public DotInPattern dXdY_ResultDot = new DotInPattern();
             public Dot FirstDot { get; set; }//Точка отсчета
-            public Dot ResultDot
-            {
-                get
-                {
-                    return new Dot(FirstDot.X + dXdY_ResultDot.dX, FirstDot.Y + dXdY_ResultDot.dY, FirstDot.Own);
-                }
-            }
+            public Dot ResultDot => new Dot(FirstDot.X + dXdY_ResultDot.dX, FirstDot.Y + dXdY_ResultDot.dY, FirstDot.Own);
 
-            public override string ToString()
-            {
-                return "Pattern " + PatternNumber.ToString();
-            }
+            public override string ToString() => "Pattern " + PatternNumber.ToString();
 
         }
         public class DotInPattern
