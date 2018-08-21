@@ -223,7 +223,7 @@ namespace DotsGame
                 BlokingDots.Clear();
                 Own = 0;
                 iNumberPattern = 0;
-                IndexRelation = 0;
+                IndexRelation = IndexDot;
                 Rating = 0;
                 Tag = "";
                 NeiborDots.Clear();
@@ -239,10 +239,11 @@ namespace DotsGame
             public override string ToString()
             {
                 string s;
-                if (Own == StateOwn.Human) s = " Player";
-                else if (Own == StateOwn.Computer) s = " Computer";
-                else s = " None";
-                s = Blocked ? X + ":" + Y + s + " Blocked" : X + ":" + Y + s + " Rating: " + Rating + "; " + Tag;
+                //if (Own == StateOwn.Human) s = " Player";
+                //else if (Own == StateOwn.Computer) s = " Computer";
+                //else s = " None";
+                //s = Blocked ? X + ":" + Y + s + " Blocked" : X + ":" + Y + s + " Rating: " + Rating + "; " + Tag;
+                s = X + ":" + Y + "; Blocked: " + Blocked + "; Rating: " + Rating + "; Tag: " + Tag + "; iNumberPattern: " + iNumberPattern;
                 return s;
             }
 
