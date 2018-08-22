@@ -15,8 +15,15 @@ namespace DotsGame
             public Dot Dot2;
 
             //private float cost;
-            public float Distance => (float)Math.Sqrt(Math.Pow(Math.Abs(Dot1.X - Dot2.X), 2) +
-                                    Math.Pow(Math.Abs(Dot1.Y - Dot2.Y), 2));
+            public float Distance
+            {
+                get
+                {
+                    //return (float)Math.Sqrt(Math.Pow(Math.Abs(Dot1.X - Dot2.X), 2) + Math.Pow(Math.Abs(Dot1.Y - Dot2.Y), 2));
+                    return (float)Math.Round(Math.Sqrt(Math.Pow(Dot1.X - Dot2.X, 2) + Math.Pow(Dot1.Y - Dot2.Y, 2)), 1);
+                }
+            }
+
             public override string ToString()
             {
                 string s = string.Empty;
@@ -146,7 +153,7 @@ namespace DotsGame
             /// <summary>
             /// Список точек, которые блокируются этой точкой
             /// </summary>
-            public List<Dot> BlokingDots { get; }
+            public List<Dot> BlokingDots { get; set; }
             /// <summary>
             /// Точки по соседству с єтой точкой
             /// </summary>
@@ -190,7 +197,7 @@ namespace DotsGame
             }
 
             public bool BonusDot { get; set; }
-            public Dot DotCopy => (Dot)MemberwiseClone();//Dot d = new Dot(x,y,Own);//d.Blocked=Blocked;//return d;
+
             public int iNumberPattern { get; set; }
 
             public Dot(int x, int y, StateOwn Owner = StateOwn.Empty, int NumberPattern = 0, int Rating = 0)
@@ -243,7 +250,7 @@ namespace DotsGame
                 //else if (Own == StateOwn.Computer) s = " Computer";
                 //else s = " None";
                 //s = Blocked ? X + ":" + Y + s + " Blocked" : X + ":" + Y + s + " Rating: " + Rating + "; " + Tag;
-                s = X + ":" + Y + "; Blocked: " + Blocked + "; Rating: " + Rating + "; Tag: " + Tag + "; iNumberPattern: " + iNumberPattern;
+                s = X + ":" + Y + "; " + Own + "; Blocked: " + Blocked + "; Rating: " + Rating + "; Tag: " + Tag + "; iNumberPattern: " + iNumberPattern;
                 return s;
             }
 

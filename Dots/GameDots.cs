@@ -20,23 +20,55 @@ namespace DotsGame
     }
     namespace GameCore
     {
+        public class ListDots : List<Dot>
+        {
+            public event EventHandler<ListDotsEventArgs> OnAdd;
+            public event EventHandler<ListDotsEventArgs> OnRemove;
+
+            public new void Add(Dot dot)
+            {
+                ListDotsEventArgs args = new ListDotsEventArgs();
+                args.Dot = dot;
+                base.Add(dot);
+                OnAdd?.Invoke(this, args);
+            }
+            public new void Remove(Dot dot)
+            {
+                ListDotsEventArgs args = new ListDotsEventArgs();
+                args.Dot = dot;
+                base.Remove(dot);
+                OnRemove?.Invoke(this, args);
+            }
+
+        }
+        public class ListDotsEventArgs : EventArgs
+        {
+            public Dot Dot { get; set; }
+        }
         public class GameDots : IEnumerator, IEnumerable//, IGame
         {
             //private const int PLAYER_DRAW = -1;
             //private const int StateOwn.Empty = 0;
             //private const int StateOwner.Human = 1;
-            public StateMove Move;//переменная хранит значение игрока который делает ход
+            public StateMove MoveState;//переменная хранит значение игрока который делает ход
             public enum StateMove
             {
                 Human,
                 Computer
             }
-            public List<Dot> ListMoves // список ходов
-            { get; set; }
+            /// <summary>
+            /// Cписок ходов - где точки не ссылаются на точки списка Dot, а дублируют
+            /// </summary>
+            //public List<Dot> ListMoves { get; set; }
+            public ListDots ListMoves { get; set; }
 
-            private List<Dot> stackMoves; //список ходов. рабочий стек
 
-            public Dot LastMove
+            /// <summary>
+            /// Список ходов. рабочий стек
+            /// </summary>
+            private List<Dot> StackMoves { get; set; }
+
+        public Dot LastMove
             {
                 get
                 {
@@ -57,16 +89,37 @@ namespace DotsGame
                     }
                 }
             }
-            public List<Dot> ListDotsForDrawing
-            {// главная коллекция для отрисовки партии
-                get
-                {
-                    return ListMoves.ToList();
-                }
-            }
+            //public List<Dot> ListDotsForDrawing
+            //{// главная коллекция для отрисовки партии
+            //    get
+            //    {
+            //        return ListMoves.ToList();
+            //    }
+            //}
             private Dot best_move; //ход который должен сделать комп
             private List<Dot> dots_in_region;//записывает сюда точки, которые окружают точку противника
+            /// <summary>
+            /// Основной список - вся доска
+            /// </summary>
             public List<Dot> Dots { get; set; }
+
+            public Dot GetDotCopy(Dot DotForCopy)
+            {
+                Dot d = new Dot(DotForCopy.X, DotForCopy.Y, DotForCopy.Own)
+                {
+                    Blocked = DotForCopy.Blocked,
+                    BlokingDots = DotForCopy.BlokingDots,
+                    BonusDot = DotForCopy.BonusDot,
+                    Fixed = DotForCopy.Fixed,
+                    IndexDot = DotForCopy.IndexDot,
+                    IndexRelation = DotForCopy.IndexRelation,
+                    iNumberPattern = DotForCopy.iNumberPattern,
+                    Rating = DotForCopy.Rating,
+                    Tag = DotForCopy.Tag
+                };
+                return d;
+            }
+
             /// <summary>
             /// Возвращает список не занятых точек
             /// </summary>
@@ -139,23 +192,35 @@ namespace DotsGame
                         counter += 1;
                     }
                 }
-
+                ListMoves = new ListDots();
+                ListMoves.OnAdd += new EventHandler<ListDotsEventArgs>(ListMoves_OnAdd);
+                ListMoves.OnRemove += new EventHandler<ListDotsEventArgs>(ListMoves_OnRemove);
                 ListLinks = new List<Links>();
-                ListMoves = new List<Dot>();
-                stackMoves = new List<Dot>();
+                //ListMoves = new List<Dot>();
+                StackMoves = new List<Dot>();
                 dots_in_region = new List<Dot>();
 
             }
+            public void ListMoves_OnAdd(object sender, ListDotsEventArgs e)
+            {
+                UpdateDotsInListMoves();
+            }
+            public void ListMoves_OnRemove(object sender, ListDotsEventArgs e)
+            {
+                //UpdateDotsInListMoves();
+            }
+            private void UpdateDotsInListMoves()
+            {
+                for (int i = 0; i < ListMoves.Count; i++)
+                {
+                    ListMoves[i].Blocked = Dots.Find(d => d.IndexDot == ListMoves[i].IndexDot).Blocked;
+                }
+                return;
+            }
+
             public void NewGame()
             {
-                foreach (Dot d in Dots)
-                {
-                    d.Restore();
-                }
-                ListLinks.Clear();
-                ListLinksForDrawing.Clear();
-                ListMoves.Clear();
-                stackMoves.Clear();
+                ClearDoard();
                 dots_in_region.Clear();
             }
             public class DotEq : EqualityComparer<Dot>
@@ -208,7 +273,7 @@ namespace DotsGame
                 return dotstatistic;
             }
 
-            private void Add(Dot dot)//добавляет точку в массив
+            private void Move(Dot dot)//добавляет точку в массив
             {
                 int ind = IndexDot(dot.X, dot.Y);
                 if (DotIndexCheck(dot.X, dot.Y))
@@ -222,7 +287,7 @@ namespace DotsGame
                     if (dot.X == 0 | dot.X == (BoardWidth - 1) | dot.Y == 0 |
                         dot.Y == (BoardHeight - 1)) Dots[ind].Fixed = true;
                     AddNeibor(Dots[ind]);
-                    stackMoves.Add(Dots[ind]);
+                    StackMoves.Add(Dots[ind]);
                 }
             }
             private void AddNeibor(Dot dot)
@@ -248,35 +313,20 @@ namespace DotsGame
                     if (d.NeiborDots.Contains(dot)) d.NeiborDots.Remove(dot);
                 }
             }
-            private void Remove(Dot dot)//удаляет точку из массива
-            {
-                //int ind = IndexDot(dot.X, dot.Y);
-                //if (DotIndexCheck(dot.X, dot.Y))
-                //{
-                //    int i = Dots[ind].IndexDot;
-                //    RemoveNeibor(dot);
-                //    Dots[ind] = new Dot(dot.X, dot.Y);
-                //    Dots[ind].IndexDot = i;
-                //    Dots[ind].IndexRelation = i;
-                //    ListMoves.Remove(dot);
-                //    stackMoves.Remove(dot);
-                //}
-                List<Dot> TempList = new List<Dot>();
-                ListMoves.Remove(dot);
-                stackMoves.Remove(dot);
-                foreach (Dot d in ListMoves)
-                {
-                    TempList.Add(new Dot(d.X,d.Y,d.Own));
-                }
-                Dots.ForEach(d => d.Restore());
-                ListMoves.Clear();
-                stackMoves.Clear();
-                foreach (Dot d in TempList)
-                {
-                    MakeMove(d, d.Own, addForDraw: true);
-                }
-                TempList = null;
-            }
+            //private void Remove(Dot dot)//удаляет точку из массива
+            //{
+            //int ind = IndexDot(dot.X, dot.Y);
+            //if (DotIndexCheck(dot.X, dot.Y))
+            //{
+            //    int i = Dots[ind].IndexDot;
+            //    RemoveNeibor(dot);
+            //    Dots[ind] = new Dot(dot.X, dot.Y);
+            //    Dots[ind].IndexDot = i;
+            //    Dots[ind].IndexRelation = i;
+            //    ListMoves.Remove(dot);
+            //    stackMoves.Remove(dot);
+            //}
+            //}
             public float Distance(Dot dot1, Dot dot2)//расстояние между точками
             {
                 return (float)Math.Round(Math.Sqrt(Math.Pow((dot1.X - dot2.X), 2) + Math.Pow((dot1.Y - dot2.Y), 2)), 1);
@@ -402,16 +452,6 @@ namespace DotsGame
                 return (x >= 0 && x < BoardWidth &&
                         y >= 0 && y < BoardHeight);
             }
-            ///// <summary>
-            ///// Проверка, находится ли точка на игровой доске
-            ///// </summary>
-            ///// <returns></returns>
-            ////private bool DotIndexCheck(Dot dot)
-            //{
-            //    bool v = dot == null;
-            //    return v ? false : (dot.x >= 0 && dot.x < BoardWidth &&
-            //            dot.y >= 0 && dot.y < BoardHeight);
-            //}
 
             /// <summary>
             /// список не занятых точек возле всех точек
@@ -451,7 +491,10 @@ namespace DotsGame
                 }
                 return dot.IndexRelation;
             }
-            public void Clear()//Не очищает список, а заменяет точки на Own == 0
+            /// <summary>
+            /// Не очищает список Dots, а сбрасывает статусы точки
+            /// </summary>
+            public void ClearDoard()
             {
                 foreach (Dot d in Dots)
                 {
@@ -460,79 +503,58 @@ namespace DotsGame
                     d.Blocked = false;
                     d.BlokingDots.Clear();
                     d.Rating = 0;
+                    d.Tag = "";
+                    d.iNumberPattern = 0;
+                    d.IndexRelation = d.IndexDot;
+                    d.StateDot = StateDotInPattern.Normal;
                 }
                 ListLinks.Clear();
                 ListMoves.Clear();
-
-            }
-            /// <summary>
-            /// Пересканирует блокированные точки и устанавливает статус Blocked
-            /// </summary>
-            private void RescanBlockedDots()
-            {
-                //-------------------Rescan Blocked Dots------------------
-                List<Dot> blockedDots = new List<Dot>();
-                foreach (Dot d in (from Dot d in Dots
-                                   where d.BlokingDots.Count > 0
-                                   select d))
-                {
-                    blockedDots.AddRange(d.BlokingDots);
-                }
-                foreach (Dot d in blockedDots)
-                {
-                    foreach (Dot dn in NeighborDotsSNWE(d))
-                    {
-                        if (dn.Own == d.Own || dn.Own == 0)
-                        {
-                            dn.Blocked = true;
-                        }
-                    }
-                    d.Blocked = true;
-                }
+                StackMoves.Clear();
             }
 
-            /// <summary>
-            /// проверяет заблокирована ли точка. Перед использованием функции надо установить flg_own
-            /// </summary>
-            /// <param name="dot">поверяемая точка</param>
-            /// <param name="flg_own">владелец проверяемой точки, этот параметр нужен для рекурсии</param>
-            /// <returns></returns>
-            private bool DotIsFree(Dot dot, StateOwn flg_own)
-            {
-                dot.Marked = true;
-                if (dot.X == 0 | dot.Y == 0 | dot.X == BoardWidth - 1 | dot.Y == BoardHeight - 1)
-                {
-                    return true;
-                }
-                Dot[] d = new Dot[4] { this[dot.X + 1, dot.Y], this[dot.X - 1, dot.Y], this[dot.X, dot.Y + 1], this[dot.X, dot.Y - 1] };
-                //--------------------------------------------------------------------------------
-                if (flg_own == 0)// если точка не принадлежит никому и рядом есть незаблокированные точки -эта точка считается свободной(незаблокированной)
-                {
-                    var q = from Dot fd in d where fd.Blocked == false select fd;
-                    if (q.Count() > 0)
-                    {
-                        return true;
-                    }
-                    else return false;
+            ///// <summary>
+            ///// проверяет заблокирована ли точка. Перед использованием функции надо установить flg_own
+            ///// </summary>
+            ///// <param name="dot">поверяемая точка</param>
+            ///// <param name="flg_own">владелец проверяемой точки, этот параметр нужен для рекурсии</param>
+            ///// <returns></returns>
+            //private bool DotIsFree(Dot dot, StateOwn flg_own)
+            //{
+            //    dot.Marked = true;
+            //    if (dot.X == 0 | dot.Y == 0 | dot.X == BoardWidth - 1 | dot.Y == BoardHeight - 1)
+            //    {
+            //        return true;
+            //    }
+            //    Dot[] d = new Dot[4] { this[dot.X + 1, dot.Y], this[dot.X - 1, dot.Y], this[dot.X, dot.Y + 1], this[dot.X, dot.Y - 1] };
+            //    //--------------------------------------------------------------------------------
+            //    if (flg_own == 0)// если точка не принадлежит никому и рядом есть незаблокированные точки -эта точка считается свободной(незаблокированной)
+            //    {
+            //        var q = from Dot fd in d where fd.Blocked == false select fd;
+            //        if (q.Count() > 0)
+            //        {
+            //            return true;
+            //        }
+            //        else return false;
 
-                }
-                //----------------------------------------------------------------------------------
-                for (int i = 0; i < 4; i++)
-                {
-                    if (d[i].Marked == false)
-                    {
-                        if (d[i].Own == 0 | d[i].Own == flg_own | d[i].Own != flg_own
-                          & d[i].Blocked & d[i].BlokingDots.Contains(dot) == false)
-                        {
-                            if (DotIsFree(d[i], flg_own))
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                }
-                return false;
-            }
+            //    }
+            //    //----------------------------------------------------------------------------------
+            //    for (int i = 0; i < 4; i++)
+            //    {
+            //        if (d[i].Marked == false)
+            //        {
+            //            if (d[i].Own == 0 | d[i].Own == flg_own | d[i].Own != flg_own
+            //              & d[i].Blocked & d[i].BlokingDots.Contains(dot) == false)
+            //            {
+            //                if (DotIsFree(d[i], flg_own))
+            //                {
+            //                    return true;
+            //                }
+            //            }
+            //        }
+            //    }
+            //    return false;
+            //}
             //********************************************************************************************
             private int Counter = 0;
             private Dot DotChecked;
@@ -574,22 +596,36 @@ namespace DotsGame
                 return false;
             }
 
-            private void RebuildDots1()
-            {
-                GameDots _Dots = new GameDots(BoardWidth, BoardHeight);
-                foreach (Dot dot in stackMoves)
-                {
-                    if (ListMoves.Contains(dot)) _Dots.MakeMove(dot, dot.Own, addForDraw: true);
-                    else _Dots.MakeMove(dot, dot.Own);
-                }
-                _Dots.RescanBlockedDots();
-                Dots = _Dots.Dots;
-                ListMoves = _Dots.ListMoves;
-                LinkDots();
-            }
+            //private void RebuildDots1()
+            //{
+            //    GameDots _Dots = new GameDots(BoardWidth, BoardHeight);
+            //    foreach (Dot dot in StackMoves)
+            //    {
+            //        if (ListMoves.Contains(dot)) _Dots.MakeMove(dot, dot.Own, addForDraw: true);
+            //        else _Dots.MakeMove(dot, dot.Own);
+            //    }
+            //    _Dots.RescanBlockedDots();
+            //    Dots = _Dots.Dots;
+            //    ListMoves = _Dots.ListMoves;
+            //    LinkDots();
+            //}
             public void UndoMove(Dot dot)//поле отмена хода
             {
-                Remove(dot);
+                ListMoves.Remove(dot);
+                StackMoves.Remove(dot);
+                //ListLinks.Clear();
+                //Dots = new List<Dot>(BoardSize);
+                foreach (Dot d in Dots)
+                {
+                    d.Restore();
+                }
+                for (int i = 0; i < ListMoves.Count; i++)
+                {
+                    MakeMove(ListMoves[i], ListMoves[i].Own);
+                }
+                LinkDots();
+                StackMoves.Clear();
+                UpdateDotsInListMoves();
             }
             public bool CheckValidMove(Dot CheckDotForMove)
             {
@@ -624,7 +660,7 @@ namespace DotsGame
                     {
                         dot.Own = Owner;
                     }
-                    Add(dot);
+                    Move(dot);
                 }
                 else return -1;//в случае невозможного хода
                                //--------------------------------
@@ -632,12 +668,13 @@ namespace DotsGame
                 //Count_blocked_after1 = CheckBlocked(dot.Own);
                 Count_blocked_after1 = (from Dot d in this where d.Own == StateOwn.Human && d.Blocked == true select d).Count();
                 Count_blocked_after2 = (from Dot d in this where d.Own == StateOwn.Computer && d.Blocked == true select d).Count();
-
                 if (addForDraw)
                 {
-                    ListMoves.Add(Dots[IndexDot(dot.X, dot.Y)]);
+                    //ListMoves.Add(Dots[IndexDot(dot.X, dot.Y)]);
+                    //ListMoves.Add(new Dot (dot.X, dot.Y, dot.Own));
+                    ListMoves.Add(GetDotCopy(Dots[IndexDot(dot.X, dot.Y)]));
                     LinkDots();//перестроить связи точек
-                    ListLinksForDrawing = ListLinks.ToList();
+                    ListLinksForDrawing = ListLinks;
                 }
                 int result1 = Count_blocked_after1 - Count_blocked_before1;
                 int result2 = Count_blocked_after2 - Count_blocked_before2;
@@ -656,7 +693,7 @@ namespace DotsGame
             private int CheckBlocked(StateOwn last_moveOwner = StateOwn.Empty)
             {
                 int counter = 0;
-                var checkdots = from Dot dots in this
+                IOrderedEnumerable<Dot> checkdots = from Dot dots in this
                                 where dots.Own != 0 | dots.Own == 0 & dots.Blocked
                                 orderby dots.Own == last_moveOwner
                                 select dots;
@@ -673,12 +710,14 @@ namespace DotsGame
                         {
                             UnmarkAllDots();
                             MarkDotsInRegion(d, d.Own);
-                            foreach (Dot dr in Lst_in_region_dots)
+                            for (int i = 0; i < Lst_in_region_dots.Count; i++)
                             {
+                                Dot dr = Lst_in_region_dots[i];
                                 //Win_player = dr.Own;
                                 count_in_region++;
-                                foreach (Dot bd in Lst_blocked_dots)
+                                for (int j = 0; j < Lst_blocked_dots.Count; j++)
                                 {
+                                    Dot bd = Lst_blocked_dots[j];
                                     if (bd.Own != 0) counter += 1;
                                     if (dr.BlokingDots.Contains(bd) == false & bd.Own != 0 & dr.Own != bd.Own)
                                     {
@@ -699,26 +738,26 @@ namespace DotsGame
 
             }
 
-            private int CheckBlocked2(StateOwn Owner)
-            {
-                var checkdots = from Dot d in this
-                                where d.Own == Owner && DotIsFree(d, Owner) == false
-                                select d;
-                if (checkdots.Count() > 0) foreach (Dot d in checkdots) d.Blocked = true;
+            //private int CheckBlocked2(StateOwn Owner)
+            //{
+            //    var checkdots = from Dot d in this
+            //                    where d.Own == Owner && DotIsFree(d, Owner) == false
+            //                    select d;
+            //    if (checkdots.Count() > 0) foreach (Dot d in checkdots) d.Blocked = true;
 
-                var blocking_dots = from Dot d1 in this
-                                    where d1.Blocked
-                                    from Dot d2 in this
-                                    where d2.Blocked == false & Distance(d1, d2) == 1
-                                    select d2;
-
-
-                Lst_blocked_dots = checkdots.ToList();
+            //    var blocking_dots = from Dot d1 in this
+            //                        where d1.Blocked
+            //                        from Dot d2 in this
+            //                        where d2.Blocked == false & Distance(d1, d2) == 1
+            //                        select d2;
 
 
-                return Lst_blocked_dots.Count;
-                //if (blocking_dots.Count() > 0) foreach (Dot d in blocking_dots) d.Blocked = true;
-            }
+            //    Lst_blocked_dots = checkdots.ToList();
+
+
+            //    return Lst_blocked_dots.Count;
+            //    //if (blocking_dots.Count() > 0) foreach (Dot d in blocking_dots) d.Blocked = true;
+            //}
 
             /// <summary>
             /// Определяет блокирующие точки и устанавливает этим точкам поле InRegion=true 
@@ -792,18 +831,10 @@ namespace DotsGame
                              where d1.BlokingDots.Count > 0
                              from Dot d2 in this
                              where d2.Own == d1.Own && d1.Blocked == d2.Blocked
-                             && d2.BlokingDots.Count > 0
-                             && Distance(d1, d2) < 2
+                             && d2.BlokingDots.Count > 0 && Distance(d1, d2) > 0 && Distance(d1, d2) < 2
                              select new Links(d1, d2)).Distinct(new LinksComparer()).ToList(); //обновляем основной массив связей - lnks              
-
-                //qry = from Links l1 in lnks
-                //      from Links l2 in lnks
-                //      where l1.Dot1.Equals(l2.Dot1) && Distance(l1.Dot2, l2.Dot2) < 2
-                //      select new Links(l1.Dot2, l2.Dot2);
-                //lnks.AddRange(qry.ToList());
-
-
             }
+
             /// <summary>
             /// функция проверяет не делается ли ход в точку, которая на следующем ходу будет окружена
             /// </summary>
@@ -837,11 +868,11 @@ namespace DotsGame
 
             //private List<Dot> RebuildLinks()
             //{
-                //List<Dot> lstDots = new List<Dot>();
+            //List<Dot> lstDots = new List<Dot>();
 
-                //var q = from Dot dot in this
-                //        where dot.IndexDot == index & dot.NeiborDots.Count == 1
-                //        select dot;
+            //var q = from Dot dot in this
+            //        where dot.IndexDot == index & dot.NeiborDots.Count == 1
+            //        select dot;
 
             //    return null;
             //}
@@ -1085,7 +1116,7 @@ namespace DotsGame
                     //делаем ход
                     if (MakeMove(d, Owner) != 0 & this[d.X, d.Y].Blocked == false)
                     {
-                        happy_dots.Add(new Dot(d.X,d.Y,d.Own));
+                        happy_dots.Add(new Dot(d.X, d.Y, d.Own));
                     }
                     UndoMove(d);
                 }
@@ -1162,7 +1193,7 @@ namespace DotsGame
 
             private Dot CheckPattern_vilochka(StateOwn Owner)
             {
-                StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer  : StateOwn.Human ;
+                StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
                 IEnumerable<Dot> get_non_blocked = from Dot d in this where d.Blocked == false select d; //получить коллекцию незаблокированных точек
 
                 //паттерн на диагональное расположение точек           *red1               +
@@ -1239,10 +1270,10 @@ namespace DotsGame
                       select move;
                 if (pat.Count() > 0) return pat.FirstOrDefault();
                 //===========ВИЛОЧКА=================================================================================================== 
-                //     *   
-                //     +  
-                //  +  *
-                //  *
+                //     +   
+                //  m  -  
+                //  -  +
+                //  +
                 iNumberPattern = 3;
                 pat = from Dot dot0 in get_non_blocked
                       where dot0.Own == StateOwn.Empty
@@ -1276,6 +1307,43 @@ namespace DotsGame
                       select move;
                 if (pat.Count() > 0) return pat.FirstOrDefault();
 
+
+                //   +   +
+                // + - m - +
+                //
+                iNumberPattern = 4;
+                pat = from Dot dot0 in get_non_blocked
+                      where dot0.Own == Enemy
+                      from Dot dot1 in get_non_blocked
+                      where dot1.Own == Enemy && Distance(dot1, dot0) == 2.0f
+                      from Dot dot2 in get_non_blocked
+                      where dot2.Own == Owner && Distance(dot2, dot1) == 3.0f
+                      from Dot dot3 in get_non_blocked
+                      where dot3.Own == Owner && Distance(dot3, dot2) == 1.4f
+                      from Dot dot4 in get_non_blocked
+                      where dot4.Own == Owner && Distance(dot4, dot3) == 2.0f
+                      from Dot dot5 in get_non_blocked
+                      where dot5.Own == Owner && Distance(dot5, dot4) == 1.4f
+                      from Dot dot6 in get_non_blocked
+                      where dot6.Own == StateOwn.Empty && Distance(dot6, dot5) == 3.2f
+                      from Dot dot7 in get_non_blocked
+                      where dot7.Own == StateOwn.Empty && Distance(dot7, dot6) == 1.0f
+                      from Dot dot8 in get_non_blocked
+                      where dot8.Own == StateOwn.Empty && Distance(dot8, dot7) == 1.0f
+&& Distance(dot8, dot0) == 2.2f
+                      from Dot move in get_non_blocked
+                      where move.Own == StateOwn.Empty
+&& Distance(dot0, move) == 1.0f
+&& Distance(dot1, move) == 1.0f
+&& Distance(dot2, move) == 2.0f
+&& Distance(dot3, move) == 1.4f
+&& Distance(dot4, move) == 1.4f
+&& Distance(dot5, move) == 2.0f
+&& Distance(dot6, move) == 1.4f
+&& Distance(dot7, move) == 1.0f
+&& Distance(dot8, move) == 1.4f
+                      select move;
+                if (pat.Count() > 0) return pat.FirstOrDefault();
                 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
                 return null;//если никаких паттернов не найдено возвращаем нуль
 
@@ -1773,7 +1841,7 @@ namespace DotsGame
                 string strDebug = string.Empty;
                 List<Dot> moves = new List<Dot>();
                 Dot bm;
-                StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer  : StateOwn.Human ;
+                StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
 #if DEBUG
                 {
                     sW2.Start();
@@ -1815,7 +1883,7 @@ namespace DotsGame
                 }
                 #region CheckPattern_vilochka
                 bm = CheckPattern_vilochka(Player);
-                if(bm!=null)
+                if (bm != null)
                 {
 #if DEBUG
                     {
@@ -1837,14 +1905,14 @@ namespace DotsGame
                     #region DEBUG
 #if DEBUG
                     {
-                    DebugInfo.lstDBG2.Add(bm.ToString() + "-->CheckPattern_vilochka ");
-                    
-                    sW2.Stop();
-                    strDebug = string.Empty + "\r\nCheckPattern_vilochka -" + sW2.Elapsed.Milliseconds.ToString();
+                        DebugInfo.lstDBG2.Add(bm.ToString() + "-->CheckPattern_vilochka ");
 
-                    sW2.Reset();
-                    sW2.Start();
-                    DebugInfo.textDBG = "CheckPattern2Move...";
+                        sW2.Stop();
+                        strDebug = string.Empty + "\r\nCheckPattern_vilochka -" + sW2.Elapsed.Milliseconds.ToString();
+
+                        sW2.Reset();
+                        sW2.Start();
+                        DebugInfo.textDBG = "CheckPattern2Move...";
                     }
 #endif
                     #endregion
@@ -1946,7 +2014,7 @@ namespace DotsGame
             /// <returns></returns>
             private StateOwn Play(StateOwn Player)
             {
-                StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer  : StateOwn.Human ;
+                StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
 
                 List<Dot> lst_best_move = new List<Dot>();//сюда заносим лучшие ходы
                 if (recursion_depth == 1) counter_moves = 1;
@@ -2228,7 +2296,10 @@ namespace DotsGame
                 {
                     pl_move = PickComputerMove(LastMove, cancellationToken);
                 }
-                if (MakeMove(pl_move, Player, addForDraw: true) == -1) return -1;
+                if (MakeMove(pl_move, Player, addForDraw: true) == -1)
+                {
+                    return -1;
+                }
 
                 if (IsGameOver)
                 {
