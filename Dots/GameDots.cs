@@ -1,4 +1,5 @@
-﻿using DotsGame.LinksAndDots;
+﻿using DotsGame;
+using DotsGame.LinksAndDots;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,12 +13,50 @@ namespace DotsGame
 {
     public static class DebugInfo
     {
-        public static string textDBG = string.Empty;
-        public static string textDBG1 = string.Empty; 
+        public static string textDBG1 = string.Empty;
         public static List<Dot> lstDBG1 = new List<Dot>();
         public static List<string> lstDBG2 = new List<string>();
-        
+        private static string s_stringMSG = string.Empty;
+
+        public static string StringMSG
+        {
+            get => s_stringMSG;
+            set
+            {
+                s_stringMSG = value;
+                DebugMSGEventArgs e = new DebugMSGEventArgs();
+                e.Message = s_stringMSG;
+                OnRaiseDebugMSGEvent(e);
+            }
+        }
+        public class DebugMSGEventArgs : EventArgs
+        {
+            public DebugMSGEventArgs()
+            {
+                Message = StringMSG;
+            }
+            public string Message { get; set; }
+        }
+
+        public static event EventHandler<DebugMSGEventArgs> RaiseDebugMSGEvent;
+
+        public static void OnRaiseDebugMSGEvent(DebugMSGEventArgs e)
+        {
+            // Make a temporary copy of the event to avoid possibility of
+            // a race condition if the last subscriber unsubscribes
+            // immediately after the null check and before the event is raised.
+            EventHandler<DebugMSGEventArgs> handler = RaiseDebugMSGEvent;
+
+            // Event will be null if there are no subscribers
+            if (handler != null)
+            {
+                e.Message = s_stringMSG;
+                // Use the () operator to raise the event.
+                handler(StringMSG, e);
+            }
+        }
     }
+}
     namespace GameCore
     {
         public class ListDots : List<Dot>
@@ -513,52 +552,8 @@ namespace DotsGame
                 StackMoves.Clear();
             }
 
-            ///// <summary>
-            ///// проверяет заблокирована ли точка. Перед использованием функции надо установить flg_own
-            ///// </summary>
-            ///// <param name="dot">поверяемая точка</param>
-            ///// <param name="flg_own">владелец проверяемой точки, этот параметр нужен для рекурсии</param>
-            ///// <returns></returns>
-            //private bool DotIsFree(Dot dot, StateOwn flg_own)
-            //{
-            //    dot.Marked = true;
-            //    if (dot.X == 0 | dot.Y == 0 | dot.X == BoardWidth - 1 | dot.Y == BoardHeight - 1)
-            //    {
-            //        return true;
-            //    }
-            //    Dot[] d = new Dot[4] { this[dot.X + 1, dot.Y], this[dot.X - 1, dot.Y], this[dot.X, dot.Y + 1], this[dot.X, dot.Y - 1] };
-            //    //--------------------------------------------------------------------------------
-            //    if (flg_own == 0)// если точка не принадлежит никому и рядом есть незаблокированные точки -эта точка считается свободной(незаблокированной)
-            //    {
-            //        var q = from Dot fd in d where fd.Blocked == false select fd;
-            //        if (q.Count() > 0)
-            //        {
-            //            return true;
-            //        }
-            //        else return false;
-
-            //    }
-            //    //----------------------------------------------------------------------------------
-            //    for (int i = 0; i < 4; i++)
-            //    {
-            //        if (d[i].Marked == false)
-            //        {
-            //            if (d[i].Own == 0 | d[i].Own == flg_own | d[i].Own != flg_own
-            //              & d[i].Blocked & d[i].BlokingDots.Contains(dot) == false)
-            //            {
-            //                if (DotIsFree(d[i], flg_own))
-            //                {
-            //                    return true;
-            //                }
-            //            }
-            //        }
-            //    }
-            //    return false;
-            //}
-            //********************************************************************************************
             private int Counter = 0;
             private Dot DotChecked;
-            //private bool IsFreeflag;
             private bool DotIsBlocked(Dot dot)
             {
                 if (Counter == 0)
@@ -596,28 +591,13 @@ namespace DotsGame
                 return false;
             }
 
-            //private void RebuildDots1()
-            //{
-            //    GameDots _Dots = new GameDots(BoardWidth, BoardHeight);
-            //    foreach (Dot dot in StackMoves)
-            //    {
-            //        if (ListMoves.Contains(dot)) _Dots.MakeMove(dot, dot.Own, addForDraw: true);
-            //        else _Dots.MakeMove(dot, dot.Own);
-            //    }
-            //    _Dots.RescanBlockedDots();
-            //    Dots = _Dots.Dots;
-            //    ListMoves = _Dots.ListMoves;
-            //    LinkDots();
-            //}
             public void UndoMove(Dot dot)//поле отмена хода
             {
                 ListMoves.Remove(dot);
                 StackMoves.Remove(dot);
-                //ListLinks.Clear();
-                //Dots = new List<Dot>(BoardSize);
-                foreach (Dot d in Dots)
+                for (int i = 0; i < Dots.Count; i++)
                 {
-                    d.Restore();
+                    Dots[i].Restore();
                 }
                 for (int i = 0; i < ListMoves.Count; i++)
                 {
@@ -665,16 +645,13 @@ namespace DotsGame
                 else return -1;//в случае невозможного хода
                                //--------------------------------
                 CheckBlocked(dot.Own);
-                //Count_blocked_after1 = CheckBlocked(dot.Own);
                 Count_blocked_after1 = (from Dot d in this where d.Own == StateOwn.Human && d.Blocked == true select d).Count();
                 Count_blocked_after2 = (from Dot d in this where d.Own == StateOwn.Computer && d.Blocked == true select d).Count();
                 if (addForDraw)
                 {
-                    //ListMoves.Add(Dots[IndexDot(dot.X, dot.Y)]);
-                    //ListMoves.Add(new Dot (dot.X, dot.Y, dot.Own));
                     ListMoves.Add(GetDotCopy(Dots[IndexDot(dot.X, dot.Y)]));
                     LinkDots();//перестроить связи точек
-                    ListLinksForDrawing = ListLinks;
+                    //ListLinksForDrawing = ListLinks;
                 }
                 int result1 = Count_blocked_after1 - Count_blocked_before1;
                 int result2 = Count_blocked_after2 - Count_blocked_before2;
@@ -819,7 +796,7 @@ namespace DotsGame
                 }
             }
             public List<Links> ListLinks { get; private set; }
-            public List<Links> ListLinksForDrawing { get; private set; } = new List<Links>();
+            //public List<Links> ListLinksForDrawing { get; private set; } = new List<Links>();
 
             /// <summary>
             /// устанавливает связь между двумя точками и возвращает массив связей 
@@ -1822,9 +1799,9 @@ namespace DotsGame
 #if DEBUG
                 stopWatch.Stop();
 
-                DebugInfo.textDBG = "Количество ходов: " + counter_moves + "\r\n Глубина рекурсии: " + MAX_RECURSION +
-                "\r\n Ход на " + best_move.ToString() +
-                "\r\n время просчета " + stopWatch.ElapsedMilliseconds.ToString() + " мс";
+                //DebugInfo.StringMSG = "Количество ходов: " + counter_moves + "\r\n Глубина рекурсии: " + MAX_RECURSION +
+                //"\r\n Ход на " + best_move.ToString() +
+                //"\r\n время просчета " + stopWatch.ElapsedMilliseconds.ToString() + " мс";
                 stopWatch.Reset();
 #endif
                 #endregion
@@ -1845,7 +1822,7 @@ namespace DotsGame
 #if DEBUG
                 {
                     sW2.Start();
-                    DebugInfo.textDBG = "CheckMove(pl2,pl1)...";
+                    DebugInfo.StringMSG = "CheckMove(pl2,pl1)...";
                 }
 #endif
                 bm = CheckMove(Player);
@@ -1876,7 +1853,7 @@ namespace DotsGame
                         sW2.Reset();
                         //проверяем паттерны
                         sW2.Start();
-                        DebugInfo.textDBG = "CheckPattern_vilochka проверяем ходы на два вперед...";
+                        DebugInfo.StringMSG = "CheckPattern_vilochka проверяем ходы на два вперед...";
                     }
 #endif
                     #endregion
@@ -1912,7 +1889,7 @@ namespace DotsGame
 
                         sW2.Reset();
                         sW2.Start();
-                        DebugInfo.textDBG = "CheckPattern2Move...";
+                        DebugInfo.StringMSG = "CheckPattern2Move...";
                     }
 #endif
                     #endregion
@@ -1938,7 +1915,7 @@ namespace DotsGame
                 strDebug = string.Empty + "\r\nCheckPattern2Move(pl2) -" + sW2.Elapsed.Milliseconds.ToString();
                 sW2.Reset();
                 sW2.Start();
-                DebugInfo.textDBG = "CheckPatternVilkaNextMove...";
+                DebugInfo.StringMSG = "CheckPatternVilkaNextMove...";
 #endif
                 #endregion
                 #region CheckPatternVilkaNextMove
@@ -1962,7 +1939,7 @@ namespace DotsGame
 
                 sW2.Reset();
                 sW2.Start();
-                DebugInfo.textDBG = "CheckPattern(pl2)...";
+                DebugInfo.StringMSG = "CheckPattern(pl2)...";
 #endif
                 #endregion
                 #endregion
@@ -2087,7 +2064,7 @@ namespace DotsGame
                         #region Debug statistic
 #if DEBUG
                         DebugInfo.lstDBG1.Add(move);//(move.Own + " -" + move.x + ":" + move.y);
-                        DebugInfo.textDBG = "Ходов проверено: " + counter_moves +
+                        DebugInfo.StringMSG = "Ходов проверено: " + counter_moves +
                                            "\r\n проверка вокруг точки " + LastMove +
                                            "\r\n время поиска " + stopWatch.ElapsedMilliseconds;
 #endif
@@ -2344,4 +2321,4 @@ namespace DotsGame
     }
     
 
-}
+
