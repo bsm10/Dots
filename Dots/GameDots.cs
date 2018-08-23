@@ -17,7 +17,7 @@ namespace DotsGame
         public static List<Dot> lstDBG1 = new List<Dot>();
         public static List<string> lstDBG2 = new List<string>();
         private static string s_stringMSG = string.Empty;
-
+        public static IProgress<string> Progress { get; set; }
         public static string StringMSG
         {
             get => s_stringMSG;
@@ -657,7 +657,7 @@ namespace DotsGame
                 int result2 = Count_blocked_after2 - Count_blocked_before2;
                 if (result1 != 0) Win_player = StateOwn.Computer;
                 if (result2 != 0) Win_player = StateOwn.Human;
-
+                //DebugInfo.StringMSG = $"Move {Owner}";
                 return result1 + result2;//res;
             }
 
@@ -1725,11 +1725,11 @@ namespace DotsGame
                 foreach (Dot d in ld) d.Tag = "CheckPatternVilka2x2(" + Owner + ")";
                 return ld;
             }
-            private Dot PickComputerMove(Dot enemy_move, CancellationToken? ct)
+            private Dot PickComputerMove(Dot enemy_move, IProgress<string> progress)
             {
-
+                DebugInfo.Progress = progress;
                 #region если первый ход выбираем произвольную соседнюю точку
-                if (ListMoves.Count < 2)
+            if (ListMoves.Count < 2)
                 {
                     var random = new Random(DateTime.Now.Millisecond);
                     var fm = from Dot d in Dots
@@ -1799,10 +1799,10 @@ namespace DotsGame
 #if DEBUG
                 stopWatch.Stop();
 
-                //DebugInfo.StringMSG = "Количество ходов: " + counter_moves + "\r\n Глубина рекурсии: " + MAX_RECURSION +
-                //"\r\n Ход на " + best_move.ToString() +
-                //"\r\n время просчета " + stopWatch.ElapsedMilliseconds.ToString() + " мс";
-                stopWatch.Reset();
+            DebugInfo.StringMSG = "Количество ходов: " + counter_moves + "\r\n Глубина рекурсии: " + MAX_RECURSION +
+            "\r\n Ход на " + best_move.ToString() +
+            "\r\n время просчета " + stopWatch.ElapsedMilliseconds.ToString() + " мс";
+            stopWatch.Reset();
 #endif
                 #endregion
                 DebugInfo.lstDBG2.Add("Ход на " + best_move.ToString() + " - " + best_move.Tag);
@@ -1822,7 +1822,7 @@ namespace DotsGame
 #if DEBUG
                 {
                     sW2.Start();
-                    DebugInfo.StringMSG = "CheckMove(pl2,pl1)...";
+                    DebugInfo.StringMSG = $"CheckMove({Player})...";
                 }
 #endif
                 bm = CheckMove(Player);
@@ -1997,8 +1997,9 @@ namespace DotsGame
                 if (recursion_depth == 1) counter_moves = 1;
                 recursion_depth++;
                 counter_moves++;
+                
 
-                if (recursion_depth > MAX_RECURSION) return StateOwn.Empty;
+            if (recursion_depth > MAX_RECURSION) return StateOwn.Empty;
 
                 lst_best_move = BestMove(Player);
                 foreach (Dot d in lst_best_move)
@@ -2029,11 +2030,14 @@ namespace DotsGame
 
                 if (lst_best_move.Count > 0)
                 {
+                int i = 0;
                     #region Cycle
                     foreach (Dot move in lst_best_move.Where(dt => dt.Rating < 2))
                     {
-                        #region ходим в проверяемые точки
-                        if (counter_moves > MAX_COUNTMOVES) break;
+                    i++;
+                    if (DebugInfo.Progress != null) DebugInfo.Progress.Report("Wait..." + i*100 / lst_best_move.Count + "%");
+                    #region ходим в проверяемые точки
+                    if (counter_moves > MAX_COUNTMOVES) break;
                         //**************делаем ход***********************************
                         res_last_move = MakeMove(move, Player);
                         Lst_moves.Add(move);
@@ -2121,7 +2125,8 @@ namespace DotsGame
                         //remove from list
                         if (DebugInfo.lstDBG1.Count > 0) DebugInfo.lstDBG1.RemoveAt(DebugInfo.lstDBG1.Count - 1);
 #endif
-                        #endregion
+                    #endregion
+                    
                     }
                     #endregion
                 }
@@ -2220,29 +2225,29 @@ namespace DotsGame
 
             public bool IsGameOver => Board_ValidMoves.Count == 0;
 
-            //public IAsyncOperation<int> MoveAsync(int Player, CancellationToken? cancellationToken, Dot pl_move = null)
-            //{
-            //    // Use a lock to prevent the ResetAsync method from modifying the game 
-            //    // state at the same time that a different thread is in this method.
-            //    //lock (_lockObject)
-            //    //{
-            //    return Move(Player, cancellationToken)
-            //}
+        //public IAsyncOperation<int> MoveAsync(int Player, CancellationToken? cancellationToken, Dot pl_move = null)
+        //{
+        //    // Use a lock to prevent the ResetAsync method from modifying the game 
+        //    // state at the same time that a different thread is in this method.
+        //    //lock (_lockObject)
+        //    //{
+        //    return MovePlayer(Player, cancellationToken);
+        //    }
 
-            //public async Task<int> MoveAsync(int player, CancellationToken? cancellationToken, Dot pl_move = null)
-            //{
-            //    int result = await Move(player, cancellationToken, pl_move);
-            //    return result;
-            //}
+        //public async Task<int> MoveAsync(StateOwn player, CancellationToken? cancellationToken, Dot pl_move = null)
+        //{
+        //    int result = await MovePlayer(player, cancellationToken, pl_move);
+        //    return result;
+        //}
 
-            public Task<int> MovePlayerAsync(StateOwn Player, CancellationToken? cancellationToken, Dot pl_move = null)
+        public Task<int> MovePlayerAsync_old(StateOwn Player, IProgress<string> progress, Dot pl_move = null)
             {
-                var tcs = new TaskCompletionSource<int>();
+                TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
                 Task.Factory.StartNew(() =>
                 {
                     try
                     {
-                        tcs.SetResult(MovePlayer(Player, cancellationToken, pl_move));
+                        tcs.SetResult(MovePlayer(Player, progress, pl_move));
                     }
                     catch (Exception ex)
                     {
@@ -2251,27 +2256,46 @@ namespace DotsGame
                 });
                 return tcs.Task;
             }
+        //public Progress<string> Progress { get; set; } = new Progress<string>(s => DebugInfo.StringMSG = s);
+
+        public Task<int> MovePlayerAsync(StateOwn Player, IProgress<string> progress=null, Dot pl_move = null)
+        {
+            TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
+            Task.Factory.StartNew(async () =>
+            {
+                try
+                {
+                    tcs.SetResult(await Task.Factory.StartNew(() => MovePlayer(Player, progress, pl_move ),
+                                                             TaskCreationOptions.LongRunning));
+                }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                }
+            });
+            return tcs.Task;
+        }
 
 
-            //CancellationToken ct;
+        //CancellationToken ct;
 
-            /// <summary>
-            /// Ход игрока. Возвращает 0 - успешно 
-            /// 1 - игра окончена
-            /// -1 - ошибка
-            /// </summary>
-            /// <param name="Player"></param>
-            /// <param name="cancellationToken"></param>
-            /// <param name="pl_move"></param>
-            /// <returns>0 - успешно 
-            /// 1 - игра окончена
-            /// -1 - ошибка
-            /// </returns>
-            public int MovePlayer(StateOwn Player, CancellationToken? cancellationToken, Dot pl_move = null)
+        /// <summary>
+        /// Ход игрока. Возвращает 0 - успешно 
+        /// 1 - игра окончена
+        /// -1 - ошибка
+        /// </summary>
+        /// <param name="Player"></param>
+        /// <param name="cancellationToken"></param>
+        /// <param name="pl_move"></param>
+        /// <returns>0 - успешно 
+        /// 1 - игра окончена
+        /// -1 - ошибка
+        /// </returns>
+        public int MovePlayer(StateOwn Player, IProgress<string> progress = null, Dot pl_move = null)
             {
                 if (pl_move == null)
                 {
-                    pl_move = PickComputerMove(LastMove, cancellationToken);
+                    pl_move = PickComputerMove(LastMove, progress);
                 }
                 if (MakeMove(pl_move, Player, addForDraw: true) == -1)
                 {
@@ -2317,7 +2341,7 @@ namespace DotsGame
             /// Устанавливается в функции CheckBlocked, во время проверки окружения точек
             /// </summary>
             public StateOwn Win_player { get; set; }
-        }
+    }
     }
     
 
