@@ -620,7 +620,6 @@ namespace DotsGame
                 List<Dot> StackMoveCopy = new List<Dot>();//создаем рабочуюю копию стека
                 foreach (Dot d in StackMoves) StackMoveCopy.Add(GetDotCopy(d));
                 StackMoves.Clear();//очищаем стек, в MakeMove он заполняется заново
-//                List<Dot> CopyDots = new List<Dot>(Dots);//создаем рабочуюю копию основного списка точек
                 //сброс игрового поля
                 for (int i = 0; i < Dots.Count; i++)
                 {
