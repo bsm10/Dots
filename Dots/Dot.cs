@@ -200,7 +200,7 @@ namespace DotsGame
 
             public int iNumberPattern { get; set; }
 
-            public Dot(int x, int y, StateOwn Owner = StateOwn.Empty, int NumberPattern = 0, int Rating = 0)
+            public Dot(int x, int y, StateOwn Owner = StateOwn.Empty, int NumberPattern = 0, int Rating = 0, string Tag = "")
             {
                 X = x;
                 Y = y;
@@ -208,6 +208,7 @@ namespace DotsGame
                 Own = Owner;
                 iNumberPattern = NumberPattern;
                 this.Rating = Rating;
+                this.Tag = Tag;
                 //IndexRelation = IndexDot;
             }
 
@@ -250,7 +251,8 @@ namespace DotsGame
                 //else if (Own == StateOwn.Computer) s = " Computer";
                 //else s = " None";
                 //s = Blocked ? X + ":" + Y + s + " Blocked" : X + ":" + Y + s + " Rating: " + Rating + "; " + Tag;
-                s = X + ":" + Y + "; " + Own + "; Blocked: " + Blocked + "; Rating: " + Rating + "; Tag: " + Tag + "; iNumberPattern: " + iNumberPattern;
+                s = X + ":" + Y + "; " + 
+                    Own + "; " + Blocked + "; Rating: " + Rating + "; Tag: " + Tag + "; iNumberPattern: " + iNumberPattern;
                 return s;
             }
 
