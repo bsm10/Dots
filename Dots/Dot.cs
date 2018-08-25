@@ -69,7 +69,6 @@ namespace DotsGame
         {
             public bool Equals(Links link1, Links link2)
             {
-
                 return link1.Equals(link2);
             }
 
