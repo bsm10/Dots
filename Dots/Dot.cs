@@ -198,7 +198,7 @@ namespace DotsGame
 
             public bool BonusDot { get; set; }
 
-            public int iNumberPattern { get; set; }
+            public int NumberPattern { get; set; }
 
             public Dot(int x, int y, StateOwn Owner = StateOwn.Empty, int NumberPattern = 0, int Rating = 0, string Tag = "")
             {
@@ -206,7 +206,7 @@ namespace DotsGame
                 Y = y;
                 BlokingDots = new List<Dot>();
                 Own = Owner;
-                iNumberPattern = NumberPattern;
+                this.NumberPattern = NumberPattern;
                 this.Rating = Rating;
                 this.Tag = Tag;
                 //IndexRelation = IndexDot;
@@ -218,8 +218,18 @@ namespace DotsGame
                 Y = p.Y;
                 BlokingDots = new List<Dot>();
                 Own = StateOwn.Empty;
-                iNumberPattern = 0;
+                NumberPattern = 0;
                 Rating = Rating;
+            }
+
+            public Dot(Dot dot)
+            {
+                X = dot.X;
+                Y = dot.Y;
+                BlokingDots = dot.BlokingDots;
+                Own = dot.Own;
+                NumberPattern = dot.NumberPattern;
+                Rating = dot.Rating;
             }
 
             /// <summary>
@@ -230,7 +240,7 @@ namespace DotsGame
                 Blocked = false;
                 BlokingDots.Clear();
                 Own = 0;
-                iNumberPattern = 0;
+                NumberPattern = 0;
                 IndexRelation = IndexDot;
                 Rating = 0;
                 Tag = "";
@@ -252,7 +262,7 @@ namespace DotsGame
                 //else s = " None";
                 //s = Blocked ? X + ":" + Y + s + " Blocked" : X + ":" + Y + s + " Rating: " + Rating + "; " + Tag;
                 s = X + ":" + Y + "; " + 
-                    Own + "; " + Blocked + "; Rating: " + Rating + "; Tag: " + Tag + "; iNumberPattern: " + iNumberPattern;
+                    Own + "; " + Blocked + "; Rating: " + Rating + "; Tag: " + Tag + "; iNumberPattern: " + NumberPattern;
                 return s;
             }
 
@@ -270,6 +280,8 @@ namespace DotsGame
 
             //}
             private int _IndexRel;
+           // private Dot dot;
+
             public int IndexRelation
             {
                 get { return _IndexRel; }
