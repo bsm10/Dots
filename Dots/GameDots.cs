@@ -170,9 +170,9 @@ namespace DotsGame
         /// <summary>
         /// Возвращает список не занятых точек
         /// </summary>
-        private List<Dot> Board_ValidMoves => Dots.Where(d => d.Own == 0 && !d.Blocked).ToList();
-        private List<Dot> Board_NotEmptyNonBlockedDots => Dots.Where(d => d.Own != 0 && !d.Blocked).ToList();
-        private List<Dot> Board_AllNotBlockedDots => Dots.Where(d => !d.Blocked).ToList();
+        //private List<Dot> Board_ValidMoves => Dots.Where(d => d.Own == 0 && !d.Blocked).ToList();
+        //private List<Dot> Board_NotEmptyNonBlockedDots => Dots.Where(d => d.Own != 0 && !d.Blocked).ToList();
+        //private List<Dot> Board_AllNotBlockedDots => Dots.Where(d => !d.Blocked).ToList();
 
         private GameDots CopyDots
             {
@@ -283,6 +283,30 @@ namespace DotsGame
             // then GetHashCode() must return the same value for these objects.
 
             public int GetHashCode(Chain ch)
+            {
+                if (ReferenceEquals(ch, null)) return 0;
+                int hashDot1 = ch.Dot1.GetHashCode();
+                int hashDot2 = ch.Dot2.GetHashCode();
+                //int hashDot3 = ch.DotE.GetHashCode();
+                //Calculate the hash code for the product.
+                return hashDot1 * hashDot2;
+            }
+
+        }
+        class Chains5DotsComparer : IEqualityComparer<Chain5Dots>
+        {
+            public bool Equals(Chain5Dots ch1, Chain5Dots ch2)
+            {
+                if (ch1.Dot1 == ch2.Dot1 && ch1.Dot2 == ch2.Dot2 ||
+                   ch1.Dot1 == ch2.Dot2 && ch2.Dot1 == ch1.Dot2) return true;
+                return false;
+                //                return ch1.Equals(ch2);
+            }
+
+            // If Equals() returns true for a pair of objects 
+            // then GetHashCode() must return the same value for these objects.
+
+            public int GetHashCode(Chain5Dots ch)
             {
                 if (ReferenceEquals(ch, null)) return 0;
                 int hashDot1 = ch.Dot1.GetHashCode();
@@ -851,7 +875,7 @@ namespace DotsGame
             /// <param name="arrDots"></param>
             /// <param name="Player"></param>
             /// <returns></returns>
-            private bool CheckDot(Dot dot, StateOwn Player)
+            private bool CheckDots(Dot dot, StateOwn Player)
             {
                 int res = MakeMove(dot, Player);
                 StateOwn pl = Player == StateOwn.Computer ? StateOwn.Human : StateOwn.Computer;
@@ -891,201 +915,6 @@ namespace DotsGame
             /// </summary>
             /// <param name="Owner">владелец проверянмых точек</param>
             /// <returns>Возвращает ход(точку) который завершает окружение</returns>
-            private Dot CheckMove1(StateOwn Owner)
-            {
-                List<Dot> happy_dots = new List<Dot>();
-                var qry = Board_ValidMoves.Where(
-                #region Query patterns Check
-
-                             d =>
-                              //     d.x + 1 < BoardWidth && d.x - 1 > -1 &&
-                              //     d.y + 1 < BoardHeight && d.y - 1 > -1 &&
-                              //       + 
-                              //    d  
-                              //       +
-                              this[d.X + 1, d.Y - 1].Blocked == false & this[d.X + 1, d.Y + 1].Blocked == false &
-                              this[d.X + 1, d.Y - 1].Own == Owner & this[d.X + 1, d.Y + 1].Own == Owner &
-                              this[d.X + 1, d.Y].Own != Owner
-                              //+        
-                              //   d     
-                              //+       
-                              | this[d.X - 1, d.Y - 1].Blocked == false & this[d.X - 1, d.Y + 1].Blocked == false &
-                              this[d.X - 1, d.Y - 1].Own == Owner & this[d.X - 1, d.Y + 1].Own == Owner &
-                              this[d.X - 1, d.Y].Own != Owner
-                            //      
-                            //   d          
-                            //+     +
-                            | this[d.X + 1, d.Y + 1].Blocked == false & this[d.X - 1, d.Y + 1].Blocked == false &
-                            this[d.X + 1, d.Y + 1].Own == Owner & this[d.X - 1, d.Y + 1].Own == Owner &
-                            this[d.X, d.Y + 1].Own != Owner
-                            //+     + 
-                            //   d          
-                            //     
-                            | this[d.X - 1, d.Y - 1].Blocked == false & this[d.X + 1, d.Y - 1].Blocked == false &
-                             this[d.X - 1, d.Y - 1].Own == Owner & this[d.X + 1, d.Y - 1].Own == Owner &
-                             this[d.X, d.Y - 1].Own != Owner
-
-                              //    +    
-                              //    d   
-                              //    +   
-                              | this[d.X, d.Y + 1].Blocked == false & this[d.X, d.Y - 1].Blocked == false &
-                                  this[d.X, d.Y - 1].Own == Owner & this[d.X, d.Y + 1].Own == Owner
-                              //&
-                              //this[d.x + 1, d.y].Own != Owner |
-                              //this[d.x - 1, d.y].Own != Owner
-                              //        
-                              //+   d   +  
-                              //       
-                              | this[d.X - 1, d.Y].Blocked == false & this[d.X + 1, d.Y].Blocked == false &
-                                this[d.X - 1, d.Y].Own == Owner & this[d.X + 1, d.Y].Own == Owner
-                              //&
-                              //this[d.x, d.y + 1].Own != Owner &
-                              //this[d.x, d.y - 1].Own != Owner
-
-                              //+        
-                              //   d     
-                              //      +   
-                              | this[d.X - 1, d.Y - 1].Blocked == false & this[d.X + 1, d.Y + 1].Blocked == false &
-                              this[d.X - 1, d.Y - 1].Own == Owner & this[d.X + 1, d.Y + 1].Own == Owner
-                              //&
-                              //this[d.x, d.y - 1].Own != Owner &
-                              //this[d.x, d.y + 1].Own != Owner &
-                              //this[d.x + 1, d.y].Own != Owner &
-                              //this[d.x - 1, d.y].Own != Owner
-                              //      +  
-                              //   d     
-                              //+        
-                              | this[d.X - 1, d.Y + 1].Blocked == false & this[d.X + 1, d.Y - 1].Blocked == false &
-                              this[d.X - 1, d.Y + 1].Own == Owner & this[d.X + 1, d.Y - 1].Own == Owner
-                            //&
-                            //this[d.x, d.y - 1].Own != Owner &
-                            //this[d.x, d.y + 1].Own != Owner &
-                            //this[d.x + 1, d.y].Own != Owner &
-                            //this[d.x - 1, d.y].Own != Owner
-
-                            //      +
-                            //+  d
-                            | this[d.X - 1, d.Y].Blocked == false & this[d.X + 1, d.Y - 1].Blocked == false &
-                              this[d.X - 1, d.Y].Own == Owner & this[d.X + 1, d.Y - 1].Own == Owner
-                              &
-                             this[d.X, d.Y - 1].Own != Owner
-
-                            //& this[d.x + 1, d.y].Own != Owner &
-                            //this[d.x - 1, d.y - 1].Own != Owner &
-                            //this[d.x + 1, d.y + 1].Own != Owner &
-                            // this[d.x, d.y + 1].Own != Owner
-
-                            // +  d
-                            //       +
-                            | this[d.X - 1, d.Y].Blocked == false & this[d.X + 1, d.Y + 1].Blocked == false &
-                              this[d.X - 1, d.Y].Own == Owner & this[d.X + 1, d.Y + 1].Own == Owner
-                              &
-                              this[d.X, d.Y + 1].Own != Owner
-                            //& this[d.x + 1, d.y].Own != Owner &
-                            //this[d.x - 1, d.y + 1].Own != Owner &
-                            //this[d.x + 1, d.y - 1].Own != Owner &
-                            //this[d.x, d.y - 1].Own != Owner
-
-                            //+
-                            //   d  +       
-                            | this[d.X + 1, d.Y].Blocked == false & this[d.X - 1, d.Y - 1].Blocked == false &
-                             this[d.X + 1, d.Y].Own == Owner & this[d.X - 1, d.Y - 1].Own == Owner &
-                             this[d.X, d.Y - 1].Own != Owner
-
-                            //& this[d.x - 1, d.y + 1].Own != Owner &
-                            //this[d.x - 1, d.y].Own != Owner &
-                            //this[d.x + 1, d.y - 1].Own != Owner 
-                            //& this[d.x, d.y + 1].Own != Owner
-
-                            //   d  +       
-                            //+
-                            | this[d.X + 1, d.Y].Blocked == false & this[d.X - 1, d.Y + 1].Blocked == false &
-                             this[d.X + 1, d.Y].Own == Owner & this[d.X - 1, d.Y + 1].Own == Owner &
-                             this[d.X, d.Y + 1].Own != Owner
-                            //&
-                            //this[d.x + 1, d.y + 1].Own != Owner &
-                            //this[d.x - 1, d.y].Own != Owner &
-                            //this[d.x - 1, d.y - 1].Own != Owner &
-                            // this[d.x, d.y - 1].Own != Owner
-
-                            //+   
-                            //   d          
-                            //   +
-                            | this[d.X, d.Y + 1].Blocked == false & this[d.X - 1, d.Y - 1].Blocked == false &
-                             this[d.X, d.Y + 1].Own == Owner & this[d.X - 1, d.Y - 1].Own == Owner &
-                             this[d.X - 1, d.Y].Own != Owner
-                            //&
-                            //this[d.x - 1, d.y + 1].Own != Owner &
-                            //this[d.x, d.y - 1].Own != Owner &
-                            //this[d.x + 1, d.y - 1].Own != Owner 
-                            //& this[d.x + 1, d.y].Own != Owner
-
-                            //   +
-                            //   d          
-                            //+   
-                            | this[d.X, d.Y - 1].Blocked == false & this[d.X - 1, d.Y + 1].Blocked == false &
-                            this[d.X, d.Y - 1].Own == Owner & this[d.X - 1, d.Y + 1].Own == Owner &
-                            this[d.X - 1, d.Y].Own != Owner
-                            //&
-                            //this[d.x - 1, d.y - 1].Own != Owner &
-                            //this[d.x + 1, d.y].Own != Owner &
-                            //this[d.x + 1, d.y + 1].Own != Owner &
-                            //this[d.x, d.y + 1].Own != Owner
-
-                            //   +
-                            //   d          
-                            //      +
-                            | this[d.X, d.Y - 1].Blocked == false & this[d.X + 1, d.Y + 1].Blocked == false &
-                            this[d.X, d.Y - 1].Own == Owner & this[d.X + 1, d.Y + 1].Own == Owner &
-                            this[d.X + 1, d.Y].Own != Owner
-                            //&
-                            //this[d.x, d.y + 1].Own != Owner &
-                            //this[d.x - 1, d.y + 1].Own != Owner &
-                            //this[d.x - 1, d.y].Own != Owner &
-                            //this[d.x + 1, d.y - 1].Own != Owner
-
-                            //      +
-                            //   d          
-                            //   +   
-                            | this[d.X, d.Y + 1].Blocked == false & this[d.X + 1, d.Y - 1].Blocked == false &
-                            this[d.X, d.Y + 1].Own == Owner & this[d.X + 1, d.Y - 1].Own == Owner &
-                            this[d.X + 1, d.Y].Own != Owner
-//&
-//this[d.x - 1, d.y - 1].Own != Owner &
-//this[d.x, d.y - 1].Own != Owner &
-//this[d.x + 1, d.y + 1].Own != Owner &
-//this[d.x - 1, d.y].Own != Owner
-                             #endregion
-);
-#if DEBUG
-                Dot[] ad = qry.ToArray();
-#endif
-                foreach (Dot d in qry)
-                {
-                    //делаем ход
-                    int result_last_move = MakeMove(d, Owner);
-#if DEBUG
-                    //if (f.chkMove.Checked) Pause();
-#endif
-                    //-----------------------------------
-                    if (result_last_move != 0 & this[d.X, d.Y].Blocked == false)
-                    {
-                        UndoMove(d);
-                        //d.CountBlockedDots = result_last_move;
-                        happy_dots.Add(d);
-                        //return d;
-                    }
-                    UndoMove(d);
-                }
-
-                //выбрать точку, которая максимально окружит
-                var x = happy_dots.Where(dd =>
-                        dd.CountBlockedDots == happy_dots.Max(dt => dt.CountBlockedDots));
-
-                return x.Count() > 0 ? x.First() : null;
-
-            }
-
             private Dot CommonDotSNWE(Dot d1, Dot d2)//*1d1* 
             {
                 return NeighborDotsSNWE(d1).Intersect(NeighborDotsSNWE(d2), new DotEq()).FirstOrDefault();
@@ -1098,7 +927,33 @@ namespace DotsGame
         {
             return NeighborDots(d1).Intersect(NeighborDots(d2), new DotEq()).Where(d=>d.Own==0).ToList();
         }
-        private List<Dot> GetDots(StateOwn Owner) => Dots.Where(d => d.Own == Owner).ToList();
+        /// <summary>
+        /// Получить все незаблокированные точки, или все заблокированные конкретного игрока
+        /// </summary>
+        /// <param name="Owner"></param>
+        /// <param name="Blocked"></param>
+        /// <returns></returns>
+        private List<Dot> GetDots(StateOwn Owner, bool Blocked = false) =>
+    Dots.Where(d => d.Blocked == Blocked && d.Own == Owner).ToList();
+        /// <summary>
+        /// Получить все незаблокированные точки, или все заблокированные занятые или нет игроками
+        /// </summary>
+        /// <param name="Blocked"></param>
+        /// <returns></returns>
+        private List<Dot> GetDots(bool NoEmpty, bool Blocked = false)
+        {
+            if(NoEmpty) return Dots.Where(d => d.Blocked == Blocked && d.Own != 0).ToList();
+            else return Dots.Where(d => d.Blocked == Blocked).ToList();
+        }
+
+        /// <summary>
+        /// Получить все незаблокированные точки, или все заблокированные
+        /// </summary>
+        /// <param name="Blocked"></param>
+        /// <returns></returns>
+        private List<Dot> GetDots(bool Blocked = false) =>
+    Dots.Where(d => d.Blocked == Blocked).ToList();
+
 
 
         private List<Dot> CommonDot2(Dot d1, Dot d2)
@@ -1127,7 +982,7 @@ namespace DotsGame
                             ||
                             d2.IndexRelation == d1.IndexRelation
                             && Distance(d1, d2) == 2
-                      from Dot d in GameDots_Copy.Board_ValidMoves
+                      from Dot d in GameDots_Copy.GetDots(StateOwn.Empty) 
                       where Distance(d, d1) < 2 && Distance(d, d2) < 2
                                 && GameDots_Copy.NeighborDotsSNWE(d).Where(dt => dt.Own == Owner).Count() <= 2
                       select d;
@@ -1154,7 +1009,7 @@ namespace DotsGame
             {
             GameDots GameDots_Copy = GetGameDotsCopy(ListMoves);
 
-            IEnumerable<Dot> qry = GameDots_Copy.Board_NotEmptyNonBlockedDots.Where(dt => dt.Own == Owner);
+            IEnumerable<Dot> qry = GameDots_Copy.GetDots(Owner);//Board_NotEmptyNonBlockedDots.Where(dt => dt.Own == Owner);
                 Dot dot_ptn;
                 if (qry.Count() != 0)
                 {
@@ -1937,10 +1792,10 @@ ld.AddRange(pat.Distinct(new DotEq()));
             IEnumerable<Dot> qry;
             GameDots GameDots_Copy = GetGameDotsCopy(ListMoves);
 
-            qry = from Dot d1 in GameDots_Copy.Board_AllNotBlockedDots
+            qry = from Dot d1 in GameDots_Copy.GetDots()     //.Board_AllNotBlockedDots
                   where d1.Own == Owner
-                  from Dot d2 in GameDots_Copy.Board_AllNotBlockedDots
-                  where d2.IndexRelation == d1.IndexRelation && !d2.Blocked && Distance(d1, d2) >= 3f && Distance(d1, d2) < 3.5f
+                  from Dot d2 in GameDots_Copy.GetDots()
+            where d2.IndexRelation == d1.IndexRelation && !d2.Blocked && Distance(d1, d2) >= 3f && Distance(d1, d2) < 3.5f
 
                   from Dot de1 in GameDots_Copy.NeighborDots(d1)
                   where de1.Own == 0 && !de1.Blocked
@@ -1995,8 +1850,8 @@ ld.AddRange(pat.Distinct(new DotEq()));
 
         }
         /// <summary>
-        /// Проверка хода на гарантированное окружение(когда точки находятся через 4 клетки) 
-        /// Возвращает точку, в результате которой будет вилка с максимальным окружением
+        /// Проверка хода на гарантированное окружение(когда точки находятся через 3 клетки) 
+        /// Возвращает точку, в результате которой будет вилка с 2 пустыми точками
         /// </summary>
         /// <param name="Owner">Владелец точек, который проверяется</param>
         /// <param name="IndexRelation"></param>
@@ -2006,51 +1861,35 @@ ld.AddRange(pat.Distinct(new DotEq()));
             GameDots GameDots_Copy = GetGameDotsCopy(ListMoves);
             StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
             List<Dot> ld = new List<Dot>();
-            IEnumerable<Dot> qry;
-            qry = from Dot d1 in GameDots_Copy.Board_NotEmptyNonBlockedDots
+            IEnumerable<Chain5Dots> qry;
+            qry = from Dot d1 in GameDots_Copy.GetDots()     
                   where d1.Own == Owner
+                  from Dot d2 in GameDots_Copy.GetDots()
+                  where d2.IndexRelation == d1.IndexRelation && Distance(d1, d2) >= 3f && Distance(d1, d2) < 3.5f
+                  from Dot de1 in GameDots_Copy.GetDots(StateOwn.Empty)
+                  where Distance(d1, de1)==1f && Distance(d2, de1) <= 2.4f
+                  from Dot de2 in GameDots_Copy.GetDots(StateOwn.Empty)
+                  where Distance(d1, de2) == 1.4f && Distance(de1, de2) == 1f && Distance(d2, de2) <= 2.4f
+                  from Dot de3 in GameDots_Copy.GetDots(StateOwn.Empty)
+                  where Distance(d2, de3) <= 1.4f && Distance(d1, de3) <=2.4f
+                  select new Chain5Dots(d1, d2, de1, de2, de3);
 
-                  from Dot d2 in GameDots_Copy.Board_NotEmptyNonBlockedDots
-                  where d2.IndexRelation == d1.IndexRelation && Distance(d1, d2) < 4.5f & Distance(d1, d2) >= 2f
-                  from Dot de1 in GameDots_Copy.Board_ValidMoves
-                  where Distance(d1, de1) <= 1.4f
-                  from Dot de2 in GameDots_Copy.Board_ValidMoves
-                  where Distance(d2, de2) <= 1.4f
-                  from Dot de3 in GameDots_Copy.CommonEmptyDots(de1, de2)
-                  where Distance(d1, de3) == 2.4 | Distance(d1, de3) == 2 &&
-                        Distance(d2, de3) == 2.4 | Distance(d2, de3) == 2 &&
-                        Distance(de1, de3) == 1.4 | Distance(de1, de3) == 1 &&
-                        Distance(de2, de3) == 1.4 | Distance(de2, de3) == 1 
-                  select de3;
+            List<Chain5Dots> lde3 = qry.Distinct(new Chains5DotsComparer()).ToList();
 
-            List<Dot> lde3 = qry.Distinct(new DotEq()).ToList();
-
-            foreach (Dot d in lde3)
+            foreach (Chain5Dots d in lde3)
             {
-                IEnumerable<Link> link_empty_dots = from Dot de1 in GameDots_Copy.NeighborDots(d)
-                                                     from Dot de2 in GameDots_Copy.NeighborDots(d)
-                                                     where Distance(de1, de2) >= 2 &&
-                                                     GameDots_Copy.NeighborDots(de2).Where(dt => dt.Own == Owner).Count() > 0 &&
-                                                     GameDots_Copy.NeighborDots(de2).Where(dt => dt.Own == Owner).Count() > 0
-                                                     select new Link(de1, de2);
-                //список точек, в которые потом делается ход для окружения
-                List<Link> link = link_empty_dots.Distinct(new LinksComparer()).ToList();
-
-                foreach (Link l in link)
+                //делаем 2 хода, чтобы проверить, замкнется регион или нет
+                GameDots_Copy.MakeMove(d.DotE1, Owner);
+                //GameDots_Copy.MakeMove(d.Dot2, Owner);
+                GameDots_Copy.MakeMove(d.DotE3, Owner);
+                if (GameDots_Copy.GoalPlayer.Player == Owner)
                 {
-                    //делаем 3 хода, чтобы проверить, замкнется регион или нет
-                    GameDots_Copy.MakeMove(d, Owner);
-                    GameDots_Copy.MakeMove(l.Dot1, Owner);
-                    GameDots_Copy.MakeMove(l.Dot2, Owner);
-                    if (GameDots_Copy.GoalPlayer.Player == Owner)
-                    {
-                        d.Rating = GameDots_Copy.GoalPlayer.CountBlocked;
-                        ld.Add(new Dot(d));
-                    }
-                    GameDots_Copy.UndoMove(l.Dot2);
-                    GameDots_Copy.UndoMove(l.Dot1);
-                    GameDots_Copy.UndoMove(d);
+                    d.DotE3.Rating = GameDots_Copy.GoalPlayer.CountBlocked;
+                    ld.Add(new Dot(d.DotE3));
                 }
+                GameDots_Copy.UndoMove(d.DotE3);
+                //GameDots_Copy.UndoMove(d.Dot2);
+                GameDots_Copy.UndoMove(d.DotE1);
             }
 
             Dot result = ld.Where(dt => dt.Rating == ld.Max(d => d.Rating)).ElementAtOrDefault(0);
@@ -2060,7 +1899,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 result.Own = 0;
                 result.NumberPattern = 777;
                 result.Rating = 1;
-                result.Tag = $"CheckPatternVilka2x2({Owner})";
+                result.Tag = $"CheckPatternVilka1x1({Owner})";
             }
             return result;
         }
@@ -2078,11 +1917,11 @@ ld.AddRange(pat.Distinct(new DotEq()));
             StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
             List<Dot> ld = new List<Dot>();
             IEnumerable<Chain> qry;
-            qry = from Dot d1 in GameDots_Copy.Board_NotEmptyNonBlockedDots
+            qry = from Dot d1 in GameDots_Copy.GetDots(NoEmpty: true)  //Board_NotEmptyNonBlockedDots
                   where d1.Own == Owner
-                  from Dot d2 in GameDots_Copy.Board_NotEmptyNonBlockedDots
+                  from Dot d2 in GameDots_Copy.GetDots(NoEmpty: true)
                   where d2.IndexRelation == d1.IndexRelation && Distance(d1, d2) < 4.5f & Distance(d1, d2) >= 2.8f
-                  from Dot de3 in GameDots_Copy.Board_ValidMoves
+                  from Dot de3 in GameDots_Copy.GetDots(StateOwn.Empty)
                   where GameDots_Copy.NeighborDots(de3).Where(d => d.Own == Owner).Count() == 0
                   && GameDots_Copy.CommonEmptyDots(d1, de3).Count == 2
                   && GameDots_Copy.CommonEmptyDots(d2, de3).Count == 2
@@ -2234,6 +2073,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
             {
                 bm.Tag = $"CheckMove({Player})";
                 bm.NumberPattern = 777; //777-ход в результате которого получается окружение - компьютер побеждает
+                bm.Rating = 0;
                 moves.Add(bm);
 #if DEBUG
                 {
@@ -2247,6 +2087,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
             {
                 bm.Tag = $"CheckMove({Enemy})";
                 bm.NumberPattern = 666; //666-ход в результате которого получается окружение -компьютер проигрывает
+                bm.Rating = 0;
                 moves.Add(bm);
             }
             #region DEBUG
@@ -2304,8 +2145,12 @@ ld.AddRange(pat.Distinct(new DotEq()));
             }
             #endregion
             #region CheckPattern2Move проверяем ходы на два вперед на гарантированное окружение
-            moves.AddRange(CheckPattern2Move(Player));
-            moves.AddRange(CheckPattern2Move(Enemy));
+            
+            moves.Add(CheckPatternVilka1x1(Player));
+            moves.Add(CheckPatternVilka1x1(Enemy));
+            //moves.AddRange(CheckPattern2Move(Player));
+            //moves.AddRange(CheckPattern2Move(Enemy));
+
             #endregion
 
 #if DEBUG
@@ -2383,7 +2228,8 @@ ld.AddRange(pat.Distinct(new DotEq()));
             //#endif
 
             #endregion
-            return moves.Distinct(new DotEq()).ToList();
+            //moves=moves
+            return moves.Where(d => d != null).Distinct(new DotEq()).ToList();
         }
 
         private void CheckVilka2x2(List<Dot> moves)
@@ -2649,7 +2495,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
             //    return this[row,column].ValidMove; ;
             //}
 
-            public bool IsGameOver => Board_ValidMoves.Count == 0;
+            public bool IsGameOver => GetDots(StateOwn.Empty).Count == 0;
 
         //public IAsyncOperation<int> MoveAsync(int Player, CancellationToken? cancellationToken, Dot pl_move = null)
         //{
@@ -2766,10 +2612,6 @@ ld.AddRange(pat.Distinct(new DotEq()));
         public Goal GoalPlayer { get; set; }
 
         /// <summary>
-        /// Устанавливается в функции CheckBlocked, во время проверки окружения точек
-        /// </summary>
-        //public StateOwn Win_player { get; set; }
-        /// <summary>
         /// Класс, который содержит информацию про игрока, который в результате своего хода окружил точки противника
         /// </summary>
         public class Goal
@@ -2783,7 +2625,6 @@ ld.AddRange(pat.Distinct(new DotEq()));
         /// </summary>
         public class Chain
         {
-            //private List<Dot> list_dots;
             public Chain(Dot dot1, Dot dot2, Dot dotE)
             {
                 Dot1 = dot1;
@@ -2791,16 +2632,9 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 DotE = dotE;
                 //list_dots = new List<Dot> { dot1, dot2, dotE };
             }
-
-            //public Chain(List<Dot> dots)
-            //{
-            //    list_dots = new List<Dot>(dots);
-            //}
-
             public Dot Dot1 { get; set; }
             public Dot Dot2 { get; set; }
             public Dot DotE { get; set; }
-
             public List<Dot> GetConnectingEmptyDotsDot1DotE(GameDots GD)
             {
                 return GD.CommonEmptyDots(Dot1, DotE);
@@ -2811,7 +2645,28 @@ ld.AddRange(pat.Distinct(new DotEq()));
             }
             public override string ToString()
             {
-                return $"{Dot1}; {DotE}; {Dot2}";
+                return $"{Dot1.X}:{Dot1.Y} - {DotE.X}:{DotE.Y} - {Dot2.X}:{Dot2.Y}";
+            }
+        }
+
+        public class Chain5Dots
+        {
+            public Chain5Dots(Dot dot1, Dot dot2, Dot dotE1, Dot dotE2, Dot dotE3)
+            {
+                Dot1 = dot1;
+                Dot2 = dot2;
+                DotE1 = dotE1;
+                DotE2 = dotE2;
+                DotE3 = dotE3;
+            }
+            public Dot Dot1 { get; set; }
+            public Dot Dot2 { get; set; }
+            public Dot DotE1 { get; set; }
+            public Dot DotE2 { get; set; }
+            public Dot DotE3 { get; set; }
+            public override string ToString()
+            {
+                return $"{Dot1.X}:{Dot1.Y} - {DotE1.X}:{DotE1.Y} - {DotE2.X}:{DotE2.Y} - {DotE3.X}:{DotE3.Y}  - {Dot2.X}:{Dot2.Y}";
             }
         }
 
