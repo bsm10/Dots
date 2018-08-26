@@ -1897,8 +1897,8 @@ ld.AddRange(pat.Distinct(new DotEq()));
             {
                 result.Blocked = false;
                 result.Own = 0;
-                result.NumberPattern = 777;
-                result.Rating = 1;
+                result.NumberPattern = result.NumberPattern = Owner == StateOwn.Computer ? 777 : 666; 
+                result.Rating = Owner == StateOwn.Computer ? 1 : 2;
                 result.Tag = $"CheckPatternVilka1x1({Owner})";
             }
             return result;
@@ -1958,8 +1958,8 @@ ld.AddRange(pat.Distinct(new DotEq()));
             {
                 result.Blocked = false;
                 result.Own = 0;
-                result.NumberPattern = 777;
-                result.Rating = 1;
+                result.NumberPattern = Owner == StateOwn.Computer ? 777 : 666;
+                result.Rating = Owner == StateOwn.Computer ? 2 : 3;
                 result.Tag = $"CheckPatternVilka2x2({Owner})";
             }
             return result;
@@ -2087,7 +2087,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
             {
                 bm.Tag = $"CheckMove({Enemy})";
                 bm.NumberPattern = 666; //666-ход в результате которого получается окружение -компьютер проигрывает
-                bm.Rating = 0;
+                bm.Rating = 1;
                 moves.Add(bm);
             }
             #region DEBUG
@@ -2268,10 +2268,11 @@ ld.AddRange(pat.Distinct(new DotEq()));
 
             if (recursion_depth > MAX_RECURSION) return StateOwn.Empty;
 
-                lst_best_move = BestMove(Player);
-                foreach (Dot d in lst_best_move)
-                {
-                    d.Rating += counter_moves;
+            lst_best_move = BestMove(Player);
+            foreach (Dot d in lst_best_move)
+            {
+                d.Rating += counter_moves;
+
 #if DEBUG
                 {
                     DebugInfo.lstDBG2.Add(d.ToString());
@@ -2279,6 +2280,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
 #endif
 
             }
+
             //tempmove = lst_best_move.Where(dt => (dt.iNumberPattern == 777 & dt.Rating == 1)
             //                                   || (dt.iNumberPattern == 666 & dt.Rating == lst_best_move.Min(d => d.Rating))).ElementAtOrDefault(0);
             tempmove = lst_best_move.Where(dt => (dt.NumberPattern == 777 & dt.Rating == lst_best_move.Min(d => d.Rating))
