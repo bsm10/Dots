@@ -226,7 +226,7 @@ namespace DotsGame
             ListMoves = new ListDots();
             ListMoves.OnAdd += new EventHandler<ListDotsEventArgs>(ListMoves_OnAdd);
             ListMoves.OnRemove += new EventHandler<ListDotsEventArgs>(ListMoves_OnRemove);
-            ListLinks = new List<Links>();
+            ListLinks = new List<Link>();
             //ListMoves = new List<Dot>();
             StackMoves = new List<Dot>();
             dots_in_region = new List<Dot>();
@@ -267,9 +267,34 @@ namespace DotsGame
                 {
                 //return (d1.X == d2.X & d1.Y == d2.Y & d1.Rating == d2.Rating);
                 return d1.X == d2.X && d1.Y == d2.Y;
+                }
             }
+        class ChainsComparer : IEqualityComparer<Chain>
+        {
+            public bool Equals(Chain ch1, Chain ch2)
+            {
+                if (ch1.Dot1 == ch2.Dot1 && ch1.Dot2 == ch2.Dot2 ||
+                   ch1.Dot1 == ch2.Dot2 && ch2.Dot1 == ch1.Dot2) return true;
+                return false;
+//                return ch1.Equals(ch2);
             }
-            public int Count
+
+            // If Equals() returns true for a pair of objects 
+            // then GetHashCode() must return the same value for these objects.
+
+            public int GetHashCode(Chain ch)
+            {
+                if (ReferenceEquals(ch, null)) return 0;
+                int hashDot1 = ch.Dot1.GetHashCode();
+                int hashDot2 = ch.Dot2.GetHashCode();
+                //int hashDot3 = ch.DotE.GetHashCode();
+                //Calculate the hash code for the product.
+                return hashDot1 * hashDot2;
+            }
+
+        }
+
+        public int Count
             {
                 get
                 {
@@ -359,44 +384,27 @@ namespace DotsGame
                 return (float)Math.Round(Math.Sqrt(Math.Pow((dot1.X - dot2.X), 2) + Math.Pow((dot1.Y - dot2.Y), 2)), 1);
             }
             /// <summary>
-            /// возвращает список соседних точек заданной точки
+            /// возвращает список соседних точек заданной точки SNWE -S -South, N -North, W -West, E -East
             /// </summary>
             /// <param name="dot"> точка Dot из массива точек типа ArrayDots </param>
             /// <returns> список точек </returns>
-            private List<Dot> NeighborDotsSNWE(Dot dot)//SNWE -S -South, N -North, W -West, E -East
-            {
-                Dot[] dts = new Dot[4] {
-                                    this[dot.X + 1, dot.Y],
-                                    this[dot.X - 1, dot.Y],
-                                    this[dot.X, dot.Y + 1],
-                                    this[dot.X, dot.Y - 1]
-                                    };
-                return dts.ToList();
-            }
-            private List<Dot> NeighborDots(Dot dot)
-            {
-                //List<Dot> l = new List<Dot>();
-                //foreach (Dot d in (from neibordots in Dots
-                //                   from dt in Dots
-                //                   where Distance(dt,neibordots)<2
-                //                   select neibordots))
-                //{
-                //    l.Add(d);
-                //}
+            private List<Dot> NeighborDotsSNWE(Dot dot) => (from d in Dots where Distance(dot, d) == 1 select d).ToList();
+        /// <summary>
+        /// возвращает список всех соседних точек заданной точки
+        /// </summary>
+        /// <param name="dot"> точка Dot из массива точек типа ArrayDots </param>
+        /// <returns> список точек </returns>
+        private List<Dot> NeighborDots(Dot dot) => (from d in Dots where Distance(dot, d) < 2 select d).ToList();
 
-                Dot[] dts = new Dot[8] {
-                                    this[dot.X + 1, dot.Y],
-                                    this[dot.X - 1, dot.Y],
-                                    this[dot.X, dot.Y + 1],
-                                    this[dot.X, dot.Y - 1],
-                                    this[dot.X + 1, dot.Y + 1],
-                                    this[dot.X - 1, dot.Y - 1],
-                                    this[dot.X - 1, dot.Y + 1],
-                                    this[dot.X + 1, dot.Y - 1]
-                                    };
-                return dts.ToList();
-            }
-            public void UnmarkAllDots()
+        /// <summary>
+        /// возвращает список всех пустых соседних точек заданной точки
+        /// </summary>
+        /// <param name="dot"> точка Dot из массива точек типа ArrayDots </param>
+        /// <returns> список точек </returns>
+        private List<Dot> NeighborEmptyDots(Dot dot) => 
+            (from d in Dots where Distance(dot, d) < 2 && d.Own==StateOwn.Empty select d).ToList();
+
+        public void UnmarkAllDots()
             {
                 Counter = 0;
                 foreach (Dot d in Dots)
@@ -819,7 +827,7 @@ namespace DotsGame
                     }
                 }
             }
-            public List<Links> ListLinks { get; private set; }
+            public List<Link> ListLinks { get; private set; }
             //public List<Links> ListLinksForDrawing { get; private set; } = new List<Links>();
 
             /// <summary>
@@ -833,7 +841,7 @@ namespace DotsGame
                              from Dot d2 in ListMoves
                              where d2.Own == d1.Own && d1.Blocked == d2.Blocked
                              && d2.BlokingDots.Count > 0 && Distance(d1, d2) > 0 && Distance(d1, d2) < 2
-                             select new Links(d1, d2)).Distinct(new LinksComparer()).ToList(); //обновляем основной массив связей - lnks              
+                             select new Link(d1, d2)).Distinct(new LinksComparer()).ToList(); //обновляем основной массив связей - lnks              
             }
 
             /// <summary>
@@ -1082,14 +1090,16 @@ namespace DotsGame
             {
                 return NeighborDotsSNWE(d1).Intersect(NeighborDotsSNWE(d2), new DotEq()).FirstOrDefault();
             }
-            private List<Dot> CommonDot(Dot d1, Dot d2)
+            private List<Dot> CommonDots(Dot d1, Dot d2)
             {
                 return NeighborDots(d1).Intersect(NeighborDots(d2), new DotEq()).ToList();
             }
-        private List<Dot> CommonEmptyDot(Dot d1, Dot d2)
+        private List<Dot> CommonEmptyDots(Dot d1, Dot d2)
         {
             return NeighborDots(d1).Intersect(NeighborDots(d2), new DotEq()).Where(d=>d.Own==0).ToList();
         }
+        private List<Dot> GetDots(StateOwn Owner) => Dots.Where(d => d.Own == Owner).ToList();
+
 
         private List<Dot> CommonDot2(Dot d1, Dot d2)
         {
@@ -1103,41 +1113,42 @@ namespace DotsGame
         /// <param name="Owner">владелец проверяемых точек</param>
         /// <returns>Возвращает ход(точку) который завершает окружение</returns>
         private Dot CheckMove(StateOwn Owner)
+        {
+            GameDots GameDots_Copy = GetGameDotsCopy(ListMoves);
+            List<Dot> happy_dots = new List<Dot>();
+            var qry = from Dot d1 in GameDots_Copy.GetDots(Owner)
+                      where d1.Own == Owner
+                      from Dot d2 in GameDots_Copy.GetDots(Owner)
+                      where
+                            d2.IndexRelation == d1.IndexRelation
+                            && Distance(d1, d2) > 2
+                            && Distance(d1, d2) < 3
+                            && GameDots_Copy.CommonDots(d1, d2).Where(dt => dt.Own == Owner).Count() == 0
+                            ||
+                            d2.IndexRelation == d1.IndexRelation
+                            && Distance(d1, d2) == 2
+                      from Dot d in GameDots_Copy.Board_ValidMoves
+                      where Distance(d, d1) < 2 && Distance(d, d2) < 2
+                                && GameDots_Copy.NeighborDotsSNWE(d).Where(dt => dt.Own == Owner).Count() <= 2
+                      select d;
+
+            foreach (Dot d in qry.Distinct(new DotEq()).ToList())
             {
-                List<Dot> happy_dots = new List<Dot>();
-                var qry = from Dot d1 in this
-                          where d1.Own == Owner
-                          from Dot d2 in this
-                          where
-                                d2.IndexRelation == d1.IndexRelation
-                                && Distance(d1, d2) > 2
-                                && Distance(d1, d2) < 3
-                                && CommonDot(d1, d2).Where(dt => dt.Own == Owner).Count() == 0
-                                ||
-                                d2.IndexRelation == d1.IndexRelation
-                                && Distance(d1, d2) == 2
-                          from Dot d in this
-                          where CheckValidMove(d) && Distance(d, d1) < 2 && Distance(d, d2) < 2
-                                    && NeighborDotsSNWE(d).Where(dt => dt.Own == Owner).Count() <= 2
-                          select d;
-
-                foreach (Dot d in qry.Distinct(new DotEq()).ToList())
+                //делаем ход
+                GameDots_Copy.MakeMove(d, Owner);
+                if (GameDots_Copy.GoalPlayer.Player == Owner)
                 {
-                    //делаем ход
-                    if (MakeMove(d, Owner) != 0 & this[d.X, d.Y].Blocked == false)
-                    {
-                        happy_dots.Add(new Dot(d.X, d.Y, d.Own));
-                    }
-                    UndoMove(d);
+                    happy_dots.Add(new Dot(d.X, d.Y, d.Own, 777, GameDots_Copy.GoalPlayer.CountBlocked));
                 }
-
-                //выбрать точку, которая максимально окружит
-                var x = happy_dots.Where(dd =>
-                        dd.CountBlockedDots == happy_dots.Max(dt => dt.CountBlockedDots));
-
-                return x.Count() > 0 ? x.First() : null;
+                GameDots_Copy.UndoMove(d);
 
             }
+            //выбрать точку, которая максимально окружит
+            Dot result = happy_dots.Distinct(new DotEq()).Where(dt =>
+             dt.Rating == happy_dots.Max(d => d.Rating)).FirstOrDefault();
+            GameDots_Copy = null;
+            return result;
+        }
 
             private Dot CheckPatternVilkaNextMove(StateOwn Owner)
             {
@@ -1937,20 +1948,20 @@ ld.AddRange(pat.Distinct(new DotEq()));
                   from Dot de2 in GameDots_Copy.NeighborDots(d2)
                   where de2.Own == 0 && !de2.Blocked
 
-                  from Dot de3 in GameDots_Copy.CommonEmptyDot(de1, de2)
+                  from Dot de3 in GameDots_Copy.CommonEmptyDots(de1, de2)
 
                   select de3;
             //список точек, куда делается ход в паттерне Вилка2х2
             List<Dot> ld = qry.Distinct(new DotEq()).ToList();
 
-            IEnumerable<Links> link_empty_dots = from Dot de1 in ld
+            IEnumerable<Link> link_empty_dots = from Dot de1 in ld
                                                  from Dot de2 in ld
                                                  where GameDots_Copy.Distance(de1, de2) >= 2
-                                                 select new Links(de1, de2);
+                                                 select new Link(de1, de2);
             //список точек, в которые потом делается ход для окружения
-            List<Links> link = link_empty_dots.Distinct(new LinksComparer()).ToList();
+            List<Link> link = link_empty_dots.Distinct(new LinksComparer()).ToList();
 
-            foreach (Links l in link)
+            foreach (Link l in link)
             {
                 //делаем ход
                 int result_last_move = GameDots_Copy.MakeMove(l.Dot1, Owner);
@@ -1990,8 +2001,8 @@ ld.AddRange(pat.Distinct(new DotEq()));
         /// <param name="Owner">Владелец точек, который проверяется</param>
         /// <param name="IndexRelation"></param>
         /// <returns></returns>
-        private Dot CheckPatternVilka2x2(StateOwn Owner)
-            {
+        private Dot CheckPatternVilka1x1(StateOwn Owner)
+        {
             GameDots GameDots_Copy = GetGameDotsCopy(ListMoves);
             StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
             List<Dot> ld = new List<Dot>();
@@ -2000,30 +2011,32 @@ ld.AddRange(pat.Distinct(new DotEq()));
                   where d1.Own == Owner
 
                   from Dot d2 in GameDots_Copy.Board_NotEmptyNonBlockedDots
-                  where d2.IndexRelation == d1.IndexRelation && Distance(d1, d2) < 4.5f & Distance(d1, d2) >= 3.5f
-
+                  where d2.IndexRelation == d1.IndexRelation && Distance(d1, d2) < 4.5f & Distance(d1, d2) >= 2f
                   from Dot de1 in GameDots_Copy.Board_ValidMoves
-                  where Distance(d1, de1) == 1
+                  where Distance(d1, de1) <= 1.4f
                   from Dot de2 in GameDots_Copy.Board_ValidMoves
-                  where Distance(d2, de2) == 1
-                  from Dot de3 in GameDots_Copy.CommonEmptyDot(de1, de2)
-                  where GameDots_Copy.NeighborDots(de3).Where(d=>d.Own==Owner).Count()==0
-
+                  where Distance(d2, de2) <= 1.4f
+                  from Dot de3 in GameDots_Copy.CommonEmptyDots(de1, de2)
+                  where Distance(d1, de3) == 2.4 | Distance(d1, de3) == 2 &&
+                        Distance(d2, de3) == 2.4 | Distance(d2, de3) == 2 &&
+                        Distance(de1, de3) == 1.4 | Distance(de1, de3) == 1 &&
+                        Distance(de2, de3) == 1.4 | Distance(de2, de3) == 1 
                   select de3;
+
             List<Dot> lde3 = qry.Distinct(new DotEq()).ToList();
 
-            foreach(Dot d in lde3)
+            foreach (Dot d in lde3)
             {
-                IEnumerable<Links> link_empty_dots = from Dot de1 in GameDots_Copy.NeighborDots(d)
+                IEnumerable<Link> link_empty_dots = from Dot de1 in GameDots_Copy.NeighborDots(d)
                                                      from Dot de2 in GameDots_Copy.NeighborDots(d)
                                                      where Distance(de1, de2) >= 2 &&
                                                      GameDots_Copy.NeighborDots(de2).Where(dt => dt.Own == Owner).Count() > 0 &&
                                                      GameDots_Copy.NeighborDots(de2).Where(dt => dt.Own == Owner).Count() > 0
-                                                     select new Links(de1, de2);
+                                                     select new Link(de1, de2);
                 //список точек, в которые потом делается ход для окружения
-                List<Links> link = link_empty_dots.Distinct(new LinksComparer()).ToList();
+                List<Link> link = link_empty_dots.Distinct(new LinksComparer()).ToList();
 
-                foreach (Links l in link)
+                foreach (Link l in link)
                 {
                     //делаем 3 хода, чтобы проверить, замкнется регион или нет
                     GameDots_Copy.MakeMove(d, Owner);
@@ -2041,6 +2054,67 @@ ld.AddRange(pat.Distinct(new DotEq()));
             }
 
             Dot result = ld.Where(dt => dt.Rating == ld.Max(d => d.Rating)).ElementAtOrDefault(0);
+            if (result != null)
+            {
+                result.Blocked = false;
+                result.Own = 0;
+                result.NumberPattern = 777;
+                result.Rating = 1;
+                result.Tag = $"CheckPatternVilka2x2({Owner})";
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Проверка хода на гарантированное окружение(когда точки находятся через 4 клетки) 
+        /// Возвращает точку, в результате которой будет вилка с максимальным окружением
+        /// </summary>
+        /// <param name="Owner">Владелец точек, который проверяется</param>
+        /// <param name="IndexRelation"></param>
+        /// <returns></returns>
+        private Dot CheckPatternVilka2x2(StateOwn Owner)
+            {
+            GameDots GameDots_Copy = GetGameDotsCopy(ListMoves);
+            StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
+            List<Dot> ld = new List<Dot>();
+            IEnumerable<Chain> qry;
+            qry = from Dot d1 in GameDots_Copy.Board_NotEmptyNonBlockedDots
+                  where d1.Own == Owner
+                  from Dot d2 in GameDots_Copy.Board_NotEmptyNonBlockedDots
+                  where d2.IndexRelation == d1.IndexRelation && Distance(d1, d2) < 4.5f & Distance(d1, d2) >= 2.8f
+                  from Dot de3 in GameDots_Copy.Board_ValidMoves
+                  where GameDots_Copy.NeighborDots(de3).Where(d => d.Own == Owner).Count() == 0
+                  && GameDots_Copy.CommonEmptyDots(d1, de3).Count == 2
+                  && GameDots_Copy.CommonEmptyDots(d2, de3).Count == 2
+
+                  select new Chain(d1,d2,de3);
+
+            List<Chain> lde3 = qry.Distinct(new ChainsComparer()).ToList();
+            
+
+            foreach(Chain ch in lde3)
+            {
+                //делаем 3 хода, чтобы проверить, замкнется регион или нет
+                Dot d1 = ch.DotE;
+                Dot d2 = ch.GetConnectingEmptyDotsDot1DotE(GameDots_Copy).First();
+                Dot d3 = ch.GetConnectingEmptyDotsDot2DotE(GameDots_Copy).First();
+                GameDots_Copy.MakeMove(d1, Owner);
+                GameDots_Copy.MakeMove(d2, Owner);
+                GameDots_Copy.MakeMove(d3, Owner);
+                if (GameDots_Copy.GoalPlayer.Player == Owner)
+                {
+                    ch.DotE.Rating = GameDots_Copy.GoalPlayer.CountBlocked;
+                    ld.Add(new Dot(ch.DotE));
+                }
+                GameDots_Copy.UndoMove(d3);
+                GameDots_Copy.UndoMove(d2);
+                GameDots_Copy.UndoMove(d1);
+                
+            }
+
+            Dot result =ld.Distinct(new DotEq()).Where(dt =>
+            dt.Rating == ld.Max(d => d.Rating)).ElementAtOrDefault(0);
+
             if(result!=null)
             {
                 result.Blocked = false;
@@ -2174,22 +2248,24 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 bm.Tag = $"CheckMove({Enemy})";
                 bm.NumberPattern = 666; //666-ход в результате которого получается окружение -компьютер проигрывает
                 moves.Add(bm);
-                #region DEBUG
-#if DEBUG
-                {
-                    DebugInfo.lstDBG2.Add($"{bm.ToString()} - Win {Enemy}!");
-                    sW2.Stop();
-                    DebugInfo.lstDBG1.Add("CheckMove pl1,pl2 -" + sW2.Elapsed.Milliseconds.ToString());
-                    sW2.Reset();
-                    //проверяем паттерны
-                    sW2.Start();
-                    DebugInfo.StringMSG = "CheckPattern_vilochka проверяем ходы на два вперед...";
-                }
-#endif
-                #endregion
             }
+            #region DEBUG
+#if DEBUG
+            {
+                if(bm!=null)DebugInfo.lstDBG2.Add($"{bm.ToString()} - Win {Enemy}!");
+                sW2.Stop();
+                DebugInfo.lstDBG1.Add("CheckMove pl1,pl2 -" + sW2.Elapsed.Milliseconds.ToString());
+                sW2.Reset();
+                //проверяем паттерны
+                sW2.Start();
+                DebugInfo.StringMSG = "CheckPattern_vilochka проверяем ходы на два вперед...";
+            }
+#endif
+            #endregion
+
             #region CheckPattern_vilochka
             bm = CheckPattern_vilochka(Player);
+            //bm = CheckPatternVilka1x1(Player);
             if (bm != null)
             {
 #if DEBUG
@@ -2201,15 +2277,16 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 bm.NumberPattern = 777; //777-ход в результате которого получается окружение -компьютер побеждает
                 moves.Add(bm);
             }
-            #endregion
-
+            
+            //bm = CheckPatternVilka1x1(Enemy);
             bm = CheckPattern_vilochka(Enemy);
             if (bm != null)
             {
                 bm.Tag = "CheckPattern_vilochka(" + Enemy + ")";
                 bm.NumberPattern = 666; //777-ход в результате которого получается окружение -компьютер побеждает
                 moves.Add(bm);//return bm;
-                #region DEBUG
+                
+            #region DEBUG
 #if DEBUG
                 {
                     DebugInfo.lstDBG2.Add(bm.ToString() + "-->CheckPattern_vilochka ");
@@ -2219,51 +2296,56 @@ ld.AddRange(pat.Distinct(new DotEq()));
 
                     sW2.Reset();
                     sW2.Start();
-                    DebugInfo.StringMSG = "CheckPattern2Move...";
 
                 }
 #endif
                 #endregion
+               
             }
-
+            #endregion
             #region CheckPattern2Move проверяем ходы на два вперед на гарантированное окружение
-            // moves.AddRange(CheckPattern2Move(Player));
-            // moves.AddRange(CheckPattern2Move(Enemy));
+            moves.AddRange(CheckPattern2Move(Player));
+            moves.AddRange(CheckPattern2Move(Enemy));
             #endregion
 
 #if DEBUG
-            sW2.Stop();
-            DebugInfo.lstDBG1.Add($"CheckPattern2Move {Player} {Enemy} - " + sW2.Elapsed.Milliseconds.ToString());
-            sW2.Reset();
-            sW2.Start();
-            DebugInfo.StringMSG = "CheckPatternVilka2x2...";
+            {
+                sW2.Stop();
+                DebugInfo.lstDBG1.Add($"CheckPattern2Move {Player} {Enemy} - " + sW2.Elapsed.Milliseconds.ToString());
+                sW2.Reset();
+                sW2.Start();
+                DebugInfo.StringMSG = "CheckPatternVilka2x2...";
+            }
 #endif
             CheckVilka2x2(moves);
 #if DEBUG
-            sW2.Stop();
-            DebugInfo.lstDBG1.Add($"CheckPatternVilka2x2({Player}) - " + sW2.Elapsed.Milliseconds.ToString());
-            sW2.Reset();
-#endif
-#if DEBUG
-
-            sW2.Start();
-            DebugInfo.StringMSG = $"CheckPatterns {Player}...";
+            {
+                sW2.Stop();
+                DebugInfo.lstDBG1.Add($"CheckPatternVilka2x2({Player}) - " + sW2.Elapsed.Milliseconds.ToString());
+                sW2.Reset();
+                sW2.Start();
+                DebugInfo.StringMSG = $"CheckPatterns {Player}...";
+            }
 #endif
             moves.AddRange(CheckPattern(Player));
 #if DEBUG
-            sW2.Stop();
-            DebugInfo.lstDBG1.Add($"CheckPatterns({Player}) -" + sW2.Elapsed.Milliseconds.ToString());
-            sW2.Reset();
-            sW2.Start();
-            DebugInfo.StringMSG = $"CheckPatterns {Enemy}...";
+            {
+                sW2.Stop();
+                DebugInfo.lstDBG1.Add($"CheckPatterns({Player}) -" + sW2.Elapsed.Milliseconds.ToString());
+                sW2.Reset();
+                sW2.Start();
+                DebugInfo.StringMSG = $"CheckPatterns {Enemy}...";
+            }
 #endif
             moves.AddRange(CheckPattern(Enemy));
 #if DEBUG
-            sW2.Stop();
-            DebugInfo.lstDBG1.Add($"CheckPatterns({Enemy}) -" + sW2.Elapsed.Milliseconds.ToString());
-            sW2.Reset();
-            sW2.Start();
-            DebugInfo.StringMSG = $"CheckPatternVilkaNextMove {StateOwn.Computer}...";
+            {
+                sW2.Stop();
+                DebugInfo.lstDBG1.Add($"CheckPatterns({Enemy}) -" + sW2.Elapsed.Milliseconds.ToString());
+                sW2.Reset();
+                sW2.Start();
+                DebugInfo.StringMSG = $"CheckPatternVilkaNextMove {StateOwn.Computer}...";
+            }
 #endif
 
 
@@ -2695,8 +2777,46 @@ ld.AddRange(pat.Distinct(new DotEq()));
             public StateOwn Player { get; set; }
             public int CountBlocked { get; set; }
         }
+        /// <summary>
+        /// Цепочка из 3 точек: 2 принадлежат игроку - 1 пустая.
+        /// dot1 - e - dE - e - dot2
+        /// </summary>
+        public class Chain
+        {
+            //private List<Dot> list_dots;
+            public Chain(Dot dot1, Dot dot2, Dot dotE)
+            {
+                Dot1 = dot1;
+                Dot2 = dot2;
+                DotE = dotE;
+                //list_dots = new List<Dot> { dot1, dot2, dotE };
+            }
+
+            //public Chain(List<Dot> dots)
+            //{
+            //    list_dots = new List<Dot>(dots);
+            //}
+
+            public Dot Dot1 { get; set; }
+            public Dot Dot2 { get; set; }
+            public Dot DotE { get; set; }
+
+            public List<Dot> GetConnectingEmptyDotsDot1DotE(GameDots GD)
+            {
+                return GD.CommonEmptyDots(Dot1, DotE);
+            }
+            public List<Dot> GetConnectingEmptyDotsDot2DotE(GameDots GD)
+            {
+                return GD.CommonEmptyDots(Dot2, DotE);
+            }
+            public override string ToString()
+            {
+                return $"{Dot1}; {DotE}; {Dot2}";
+            }
+        }
+
     }
- }
+}
     
 
 

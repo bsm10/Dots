@@ -9,17 +9,16 @@ namespace DotsGame
 {
     namespace LinksAndDots
     {
-        public class Links //: IEqualityComparer<Links>
+        //******************************Link********************************************
+        public class Link //: IEqualityComparer<Links>
         {
             public Dot Dot1;
             public Dot Dot2;
 
-            //private float cost;
             public float Distance
             {
                 get
                 {
-                    //return (float)Math.Sqrt(Math.Pow(Math.Abs(Dot1.X - Dot2.X), 2) + Math.Pow(Math.Abs(Dot1.Y - Dot2.Y), 2));
                     return (float)Math.Round(Math.Sqrt(Math.Pow(Dot1.X - Dot2.X, 2) + Math.Pow(Dot1.Y - Dot2.Y, 2)), 1);
                 }
             }
@@ -27,11 +26,11 @@ namespace DotsGame
             public override string ToString()
             {
                 string s = string.Empty;
-                if (Dot1.Own == StateOwn.Human & Dot2.Own == StateOwn.Human) s = " Player";
-                if (Dot1.Own == StateOwn.Computer & Dot2.Own == StateOwn.Computer) s = " Computer";
-                if (Dot1.Own == 0 | Dot2.Own == 0) s = " None";
+                //if (Dot1.Own == StateOwn.Human & Dot2.Own == StateOwn.Human) s = " Player";
+                //if (Dot1.Own == StateOwn.Computer & Dot2.Own == StateOwn.Computer) s = " Computer";
+                //if (Dot1.Own == 0 | Dot2.Own == 0) s = " None";
 
-                return Dot1.X + ":" + Dot1.Y + "-" + Dot2.X + ":" + Dot2.Y + s + " Cost - " + Distance.ToString() + " Fixed " + Fixed.ToString();
+                return $"{Dot1.X} : {Dot1.Y} - {Dot2.X} : {Dot2.Y}; {Own}  Dist - {Distance.ToString()}";
             }
             public override int GetHashCode()
             {
@@ -49,25 +48,25 @@ namespace DotsGame
             }
 
             public bool Blocked => (Dot1.Blocked & Dot2.Blocked);
+            public StateOwn Own => Dot1.Own;
 
             public bool Fixed => (Dot1.Fixed | Dot2.Fixed);
 
-
-            public Links(Dot dot1, Dot dot2)
+            public Link(Dot dot1, Dot dot2)
             {
                 Dot1 = dot1;
                 Dot2 = dot2;
             }
 
-            public bool Equals(Links otherLink)//Проверяет равенство связей по точкам
+            public bool Equals(Link otherLink)//Проверяет равенство связей по точкам
             {
                 return GetHashCode().Equals(otherLink.GetHashCode());
             }
 
         }
-        class LinksComparer : IEqualityComparer<Links>
+        class LinksComparer : IEqualityComparer<Link>
         {
-            public bool Equals(Links link1, Links link2)
+            public bool Equals(Link link1, Link link2)
             {
                 return link1.Equals(link2);
             }
@@ -75,7 +74,7 @@ namespace DotsGame
             // If Equals() returns true for a pair of objects 
             // then GetHashCode() must return the same value for these objects.
 
-            public int GetHashCode(Links links)
+            public int GetHashCode(Link links)
             {
                 //Check whether the object is null
                 if (ReferenceEquals(links, null)) return 0;
@@ -91,6 +90,7 @@ namespace DotsGame
             }
 
         }
+        //*********************************Dot******************************************
         public class ComparerDots : IComparer<Dot>
         {
             public int Compare(Dot d1, Dot d2)
@@ -260,7 +260,7 @@ namespace DotsGame
                 //else if (Own == StateOwn.Computer) s = " Computer";
                 //else s = " None";
                 //s = Blocked ? X + ":" + Y + s + " Blocked" : X + ":" + Y + s + " Rating: " + Rating + "; " + Tag;
-                s = X + ":" + Y + "; " + 
+                s = X + ":" + Y + "; " +
                     Own + "; " + Blocked + "; Rating: " + Rating + "; Tag: " + Tag + "; iNumberPattern: " + NumberPattern;
                 return s;
             }
@@ -279,7 +279,7 @@ namespace DotsGame
 
             //}
             private int _IndexRel;
-           // private Dot dot;
+            // private Dot dot;
 
             public int IndexRelation
             {
