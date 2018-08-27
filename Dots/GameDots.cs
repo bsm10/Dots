@@ -2177,6 +2177,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 bm.Tag = "CheckPattern_vilochka(" + Player + ")";
                 bm.NumberPattern = 777; //777-ход в результате которого получается окружение -компьютер побеждает
                 moves.Add(bm);
+                return moves;
             }
             
             //bm = CheckPatternVilka1x1(Enemy);
@@ -2185,8 +2186,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
             {
                 bm.Tag = "CheckPattern_vilochka(" + Enemy + ")";
                 bm.NumberPattern = 666; //777-ход в результате которого получается окружение -компьютер побеждает
-                moves.Add(bm);//return bm;
-                
+                moves.Add(bm);
             #region DEBUG
 #if DEBUG
                 {
@@ -2201,22 +2201,31 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 }
 #endif
                 #endregion
-               
+               return moves;
             }
             #endregion
-            #region CheckPattern2Move проверяем ходы на два вперед на гарантированное окружение
-            
-            moves.Add(CheckPatternVilka1x1(Player));
-            moves.Add(CheckPatternVilka1x1(Enemy));
-            //moves.AddRange(CheckPattern2Move(Player));
-            //moves.AddRange(CheckPattern2Move(Enemy));
+            #region CheckPatternVilka1x1 проверяем ходы на два вперед на гарантированное окружение
+
+            bm = CheckPatternVilka1x1(Player);
+            if (bm!=null)
+            {
+                moves.Add(bm);
+                return moves;
+            }
+
+            bm = CheckPatternVilka1x1(Enemy);
+            if (bm != null)
+            {
+                moves.Add(bm);
+                return moves;
+            }
 
             #endregion
 
 #if DEBUG
             {
                 sW2.Stop();
-                DebugInfo.lstDBG1.Add($"CheckPattern2Move {Player} {Enemy} - " + sW2.Elapsed.Milliseconds.ToString());
+                DebugInfo.lstDBG1.Add($"CheckPatternVilka1x1 {Player} {Enemy} - " + sW2.Elapsed.Milliseconds.ToString());
                 sW2.Reset();
                 sW2.Start();
                 DebugInfo.StringMSG = "CheckPatternVilka2x2...";
