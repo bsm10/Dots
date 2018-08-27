@@ -230,6 +230,15 @@ namespace DotsGame
                 NumberPattern = dot.NumberPattern;
                 Rating = dot.Rating;
             }
+            public Dot(Dot dot, StateOwn Owner)
+            {
+                X = dot.X;
+                Y = dot.Y;
+                BlokingDots = dot.BlokingDots;
+                Own = Owner;
+                NumberPattern = dot.NumberPattern;
+                Rating = dot.Rating;
+            }
 
             /// <summary>
             /// Восстанавливаем первоначальное состояние точки
