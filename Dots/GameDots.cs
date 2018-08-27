@@ -372,7 +372,8 @@ namespace DotsGame
                     if (dot.X == 0 | dot.X == (BoardWidth - 1) | dot.Y == 0 |
                         dot.Y == (BoardHeight - 1)) Dots[ind].Fixed = true;
                     AddNeibor(Dots[ind]);
-                }
+                    StackMoves.Add(Dots[IndexDot(dot.X, dot.Y)]);
+            }
             }
         /// <summary>
         /// Добавляет точки в список NeiborDots для соседних точек и связывает их MakeIndexRelation
@@ -698,7 +699,7 @@ namespace DotsGame
             Count_blocked_after_Human = (from Dot d in this where d.Own == StateOwn.Human && d.Blocked == true select d).Count();
             Count_blocked_after_Comp = (from Dot d in this where d.Own == StateOwn.Computer && d.Blocked == true select d).Count();
 
-            StackMoves.Add(Dots[IndexDot(dot.X, dot.Y)]);
+            //StackMoves.Add(Dots[IndexDot(dot.X, dot.Y)]);
 
             if (addForDraw)
             {
@@ -1877,12 +1878,10 @@ ld.AddRange(pat.Distinct(new DotEq()));
                   from Dot d2 in GameDots_Copy.GetDots()
                   where d2.IndexRelation == d1.IndexRelation && Distance(d1, d2) >= 3f && Distance(d1, d2) < 3.8f
                   from Dot de1 in GameDots_Copy.GetDots(StateOwn.Empty)
-                  where Distance(d1, de1)==1f// && Distance(d2, de1) <= 2.4f
+                  where Distance(d1, de1)==1f
                   from Dot de2 in GameDots_Copy.GetDots(StateOwn.Empty)
-                  where Distance(d1, de2) == 1.4f //&& Distance(de1, de2) == 1f && Distance(d2, de2) <= 2.4f
+                  where Distance(d1, de2) == 1.4f 
                   from Dot de3 in GameDots_Copy.GetDots(StateOwn.Empty)
-                  //where Distance(d2, de3) <= 1.4f && Distance(d1, de3) <=2.4f
-
                   where Distance(d2, de3) <= 1.4f && GameDots_Copy.CommonEmptyDots(de3,d1).Contains(de1)
                   && GameDots_Copy.CommonEmptyDots(de3, d1).Contains(de2)
 
@@ -1893,8 +1892,8 @@ ld.AddRange(pat.Distinct(new DotEq()));
             foreach (Chain5Dots d in lde3)
             {
                 //делаем 2 хода, чтобы проверить, замкнется регион или нет
-                GameDots_Copy.MakeMove(d.DotE1, Owner);
-                //GameDots_Copy.MakeMove(d.Dot2, Owner);
+                GameDots_Copy.Move(new Dot(d.DotE1, Owner));
+                //GameDots_Copy.MakeMove(d.DotE1, Owner);
                 GameDots_Copy.MakeMove(d.DotE3, Owner);
                 if (GameDots_Copy.GoalPlayer.Player == Owner)
                 {
@@ -1902,7 +1901,6 @@ ld.AddRange(pat.Distinct(new DotEq()));
                     ld.Add(new Dot(d.DotE3));
                 }
                 GameDots_Copy.UndoMove(d.DotE3);
-                //GameDots_Copy.UndoMove(d.Dot2);
                 GameDots_Copy.UndoMove(d.DotE1);
             }
 
@@ -1951,8 +1949,10 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 Dot d1 = ch.DotE;
                 Dot d2 = ch.GetConnectingEmptyDotsDot1DotE(GameDots_Copy).First();
                 Dot d3 = ch.GetConnectingEmptyDotsDot2DotE(GameDots_Copy).First();
-                GameDots_Copy.MakeMove(d1, Owner);
-                GameDots_Copy.MakeMove(d2, Owner);
+                GameDots_Copy.Move(new Dot(d1, Owner));
+                GameDots_Copy.Move(new Dot(d2, Owner));
+                //GameDots_Copy.MakeMove(d1, Owner);
+                //GameDots_Copy.MakeMove(d2, Owner);
                 GameDots_Copy.MakeMove(d3, Owner);
                 if (GameDots_Copy.GoalPlayer.Player == Owner)
                 {
@@ -2020,7 +2020,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
 
                 //Проигрываем разные комбинации
                 recursion_depth = 0;
-                Play(StateOwn.Computer);
+                Play(StateOwn.Computer, progress);
 
                 //foreach (Dot d in Lst_branch) DebugInfo.lstDBG2.Add(d.ToString() + " - " + d.Tag);
                 Dot move = Lst_branch.Where(dt => dt.Rating == Lst_branch.Min(d => d.Rating)).ElementAtOrDefault(0);
@@ -2071,7 +2071,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
         /// </summary>
         /// <param name="Player"></param>
         /// <returns></returns>
-        private List<Dot> BestMove(StateOwn Player)
+        private List<Dot> BestMove(StateOwn Player, IProgress<string> progress)
         {
             DebugInfo.lstDBG1.Clear();
             DebugInfo.lstDBG2.Clear();
@@ -2082,52 +2082,62 @@ ld.AddRange(pat.Distinct(new DotEq()));
 #if DEBUG
             {
                 sW2.Start();
-                if (DebugInfo.Progress != null) DebugInfo.Progress.Report($"CheckMove({Player})...");
+                if (progress != null) progress.Report($"CheckMove({Player})...");
                 DebugInfo.StringMSG = $"CheckMove({Player})...";
             }
 #endif
 
-
+            #region ParallelTasks
             Goal GoalPlayer = new Goal();
             Goal GoalEnemy = new Goal();
-            bm = CheckMove(Player, GoalPlayer);
-            if (bm != null)
-            {
-                bm.Tag = $"CheckMove({Player})";
-                bm.NumberPattern = 777; //777-ход в результате которого получается окружение - компьютер побеждает
-                moves.Add(bm);
-#if DEBUG
-                {
-                    sW2.Stop();
-                    DebugInfo.lstDBG1.Add($"CheckMove {Player} - {sW2.Elapsed.Milliseconds.ToString()}");
-                    if (DebugInfo.Progress != null) DebugInfo.Progress.Report($"CheckMove {Player} - {sW2.Elapsed.Milliseconds.ToString()}; CheckMove {Enemy}...");
-                    sW2.Reset();
-                }
-#endif
-            }
-#if DEBUG
-            {
-                sW2.Start();
-                DebugInfo.StringMSG = $"CheckMove({Enemy})...";
-            }
-#endif
 
-            bm = CheckMove(Enemy, GoalEnemy);
-            if (bm != null)
+            // Perform three tasks in parallel on the source array
+            Parallel.Invoke(
+            () =>
             {
-                bm.Tag = $"CheckMove({Enemy})";
-                bm.NumberPattern = 666; //666-ход в результате которого получается окружение -компьютер проигрывает
-                moves.Add(bm);
+                bm = CheckMove(Player, GoalPlayer);
+                if (bm != null)
+                {
+                    bm.Tag = $"CheckMove({Player})";
+                    bm.NumberPattern = 777; //777-ход в результате которого получается окружение - компьютер побеждает
+                    moves.Add(bm);
+#if DEBUG
+                    {
+                        sW2.Stop();
+                        DebugInfo.lstDBG1.Add($"CheckMove {Player} - {sW2.Elapsed.Milliseconds.ToString()}");
+                        if (progress != null) progress.Report($"CheckMove {Player} - {sW2.Elapsed.Milliseconds.ToString()}; CheckMove {Enemy}...");
+                        sW2.Reset();
+                    }
+#endif
+                }
 #if DEBUG
                 {
-                    sW2.Stop();
-                    DebugInfo.lstDBG1.Add($"CheckMove {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}");
-                    if (DebugInfo.Progress != null) DebugInfo.Progress.Report($"CheckMove {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}; CheckPattern_vilochka...");
-                    sW2.Reset();
-                    //проверяем паттерны
+                    sW2.Start();
+                    DebugInfo.StringMSG = $"CheckMove({Enemy})...";
                 }
 #endif
-            }
+            },  // close first Action
+            () =>
+            {
+                bm = CheckMove(Enemy, GoalEnemy);
+                if (bm != null)
+                {
+                    bm.Tag = $"CheckMove({Enemy})";
+                    bm.NumberPattern = 666; //666-ход в результате которого получается окружение -компьютер проигрывает
+                    moves.Add(bm);
+#if DEBUG
+                    {
+                        sW2.Stop();
+                        DebugInfo.lstDBG1.Add($"CheckMove {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}");
+                        if (progress != null) progress.Report($"CheckMove {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}; CheckPattern_vilochka...");
+                        sW2.Reset();
+                        //проверяем паттерны
+                    }
+#endif
+                }
+            } //close second Action
+        ); //close parallel.invoke
+
             #region Проверка, кто больше окружит и будет ли угроза после окружения
             if ((GoalPlayer.CountBlocked - GoalEnemy.CountBlocked) > 0)
             {
@@ -2158,70 +2168,83 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 return moves;
             }
             #endregion
+
+            #endregion
+
+
             #region CheckPattern_vilochka
 #if DEBUG
             {
                 sW2.Start();
                 DebugInfo.StringMSG = "CheckPattern_vilochka проверяем ходы на два вперед...";
-                if (DebugInfo.Progress != null) DebugInfo.Progress.Report(DebugInfo.StringMSG);
+                if (progress != null) progress.Report(DebugInfo.StringMSG);
             }
 #endif
-
-            bm = CheckPattern_vilochka(Player);
-            if (bm != null)
+            Parallel.Invoke(
+            () =>
             {
-#if DEBUG
+                bm = CheckPattern_vilochka(Player);
+                if (bm != null)
                 {
-                    DebugInfo.lstDBG2.Add(bm.ToString() + " ----> CheckPattern_vilochka ");
-                }
-#endif
-                bm.Tag = "CheckPattern_vilochka(" + Player + ")";
-                bm.NumberPattern = 777; //777-ход в результате которого получается окружение -компьютер побеждает
-                moves.Add(bm);
-                return moves;
-            }
-
-            bm = CheckPattern_vilochka(Enemy);
-            if (bm != null)
-            {
-                bm.Tag = "CheckPattern_vilochka(" + Enemy + ")";
-                bm.NumberPattern = 666; //777-ход в результате которого получается окружение -компьютер побеждает
-                moves.Add(bm);
-            #region DEBUG
 #if DEBUG
-                {
-                    DebugInfo.lstDBG2.Add(bm.ToString() + "-->CheckPattern_vilochka ");
-
-                    sW2.Stop();
-                    DebugInfo.lstDBG1.Add($"CheckPattern_vilochka - {sW2.Elapsed.Milliseconds.ToString()}");
-                    if (DebugInfo.Progress != null)
                     {
-                        DebugInfo.Progress.Report($"CheckPattern_vilochka - {sW2.Elapsed.Milliseconds.ToString()}; CheckPatternVilka1x1...");
+                        DebugInfo.lstDBG2.Add(bm.ToString() + " ----> CheckPattern_vilochka ");
                     }
-                    sW2.Reset();
-                    sW2.Start();
-                }
 #endif
-                #endregion
-               return moves;
-            }
+                    bm.Tag = "CheckPattern_vilochka(" + Player + ")";
+                    bm.NumberPattern = 777; //777-ход в результате которого получается окружение -компьютер побеждает
+                    moves.Add(bm);
+                }
+            },  // close first Action
+            () =>
+            {
+                bm = CheckPattern_vilochka(Enemy);
+                if (bm != null)
+                {
+                    bm.Tag = "CheckPattern_vilochka(" + Enemy + ")";
+                    bm.NumberPattern = 666; //777-ход в результате которого получается окружение -компьютер побеждает
+                    moves.Add(bm);
+                    #region DEBUG
+#if DEBUG
+                    {
+                        DebugInfo.lstDBG2.Add(bm.ToString() + "-->CheckPattern_vilochka ");
+
+                        sW2.Stop();
+                        DebugInfo.lstDBG1.Add($"CheckPattern_vilochka - {sW2.Elapsed.Milliseconds.ToString()}");
+                        if (DebugInfo.Progress != null)
+                        {
+                            DebugInfo.Progress.Report($"CheckPattern_vilochka - {sW2.Elapsed.Milliseconds.ToString()}; CheckPatternVilka1x1...");
+                        }
+                        sW2.Reset();
+                        sW2.Start();
+                    }
+#endif
+                    #endregion
+                }
+            } //close second Action
+        ); //close parallel.invoke
             #endregion
+
             #region CheckPatternVilka1x1 проверяем ходы на два вперед на гарантированное окружение
-
-            bm = CheckPatternVilka1x1(Player);
-            if (bm!=null)
+            Parallel.Invoke(
+            () =>
             {
-                moves.Add(bm);
-                return moves;
-            }
+                bm = CheckPatternVilka1x1(Player);
+                if (bm!=null)
+                {
+                    moves.Add(bm);
+                }
 
-            bm = CheckPatternVilka1x1(Enemy);
-            if (bm != null)
+            },  // close first Action
+            () =>
             {
-                moves.Add(bm);
-                return moves;
-            }
-
+                bm = CheckPatternVilka1x1(Enemy);
+                if (bm != null)
+                {
+                    moves.Add(bm);
+                }
+            } //close second Action
+        ); //close parallel.invoke
             #endregion
 
 #if DEBUG
@@ -2238,7 +2261,22 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 DebugInfo.StringMSG = "CheckPatternVilka2x2...";
             }
 #endif
-            CheckVilka2x2(moves);
+
+            #region Check vilka2x2
+            Parallel.Invoke(
+            () =>
+            {
+                bm = CheckPatternVilka2x2(StateOwn.Human);
+                if (bm != null) moves.Add(bm);
+            },  // close first Action
+            () =>
+            {
+                bm = CheckPatternVilka2x2(StateOwn.Computer);
+                if (bm != null) moves.Add(bm);
+            } //close second Action
+        ); //close parallel.invoke
+
+            #endregion
 #if DEBUG
             {
                 sW2.Stop();
@@ -2253,28 +2291,28 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 DebugInfo.StringMSG = $"CheckPatterns {Player}...";
             }
 #endif
-            moves.AddRange(CheckPattern(Player));
-#if DEBUG
-            {
-                sW2.Stop();
-                DebugInfo.lstDBG1.Add($"CheckPatterns({Player}) - {sW2.Elapsed.Milliseconds.ToString()}");
-                if (DebugInfo.Progress != null) DebugInfo.Progress.Report($"CheckPatterns({Player}) - {sW2.Elapsed.Milliseconds.ToString()}");
-                sW2.Reset();
-                sW2.Start();
-                DebugInfo.StringMSG = $"CheckPatterns {Enemy}...";
-            }
-#endif
-            moves.AddRange(CheckPattern(Enemy));
-#if DEBUG
-            {
-                sW2.Stop();
-                DebugInfo.lstDBG1.Add($"CheckPatterns({Enemy}) -" + sW2.Elapsed.Milliseconds.ToString());
-                if (DebugInfo.Progress != null) DebugInfo.Progress.Report(DebugInfo.lstDBG1.Last());
-                sW2.Reset();
-                sW2.Start();
-                DebugInfo.StringMSG = $"CheckPatternVilkaNextMove {StateOwn.Computer}...";
-            }
-#endif
+//            moves.AddRange(CheckPattern(Player));
+//#if DEBUG
+//            {
+//                sW2.Stop();
+//                DebugInfo.lstDBG1.Add($"CheckPatterns({Player}) - {sW2.Elapsed.Milliseconds.ToString()}");
+//                if (progress != null) progress.Report($"CheckPatterns({Player}) - {sW2.Elapsed.Milliseconds.ToString()}");
+//                sW2.Reset();
+//                sW2.Start();
+//                DebugInfo.StringMSG = $"CheckPatterns {Enemy}...";
+//            }
+//#endif
+//            moves.AddRange(CheckPattern(Enemy));
+//#if DEBUG
+//            {
+//                sW2.Stop();
+//                DebugInfo.lstDBG1.Add($"CheckPatterns({Enemy}) -" + sW2.Elapsed.Milliseconds.ToString());
+//                if (progress != null) progress.Report(DebugInfo.lstDBG1.Last());
+//                sW2.Reset();
+//                sW2.Start();
+//                DebugInfo.StringMSG = $"CheckPatternVilkaNextMove {StateOwn.Computer}...";
+//            }
+//#endif
 
 
             #region CheckPatternVilkaNextMove пока тормозит сильно - переработать!
@@ -2315,14 +2353,6 @@ ld.AddRange(pat.Distinct(new DotEq()));
             return moves.Where(d => d != null).Distinct(new DotEq()).ToList();
         }
 
-        private void CheckVilka2x2(List<Dot> moves)
-        {
-            Dot v = CheckPatternVilka2x2(StateOwn.Human);
-            if (v != null) moves.Add(v);
-            v = CheckPatternVilka2x2(StateOwn.Computer);
-            if (v != null) moves.Add(v);
-        }
-
         //
         int counter_moves = 0;
             int res_last_move; //хранит результат хода
@@ -2339,7 +2369,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
             /// <param name="Player">Human</param>
             /// <param name="player2">Computer</param>
             /// <returns></returns>
-            private StateOwn Play(StateOwn Player)
+            private StateOwn Play(StateOwn Player, IProgress<string> progress)
             {
                 StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
 
@@ -2351,7 +2381,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
 
             if (recursion_depth > MAX_RECURSION) return StateOwn.Empty;
 
-            lst_best_move = BestMove(Player);
+            lst_best_move = BestMove(Player, progress);
             foreach (Dot d in lst_best_move)
             {
                 d.Rating += counter_moves;
@@ -2382,7 +2412,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
                     foreach (Dot move in lst_best_move.Where(dt => dt.Rating < 2))
                     {
                     i++;
-                    if (DebugInfo.Progress != null) DebugInfo.Progress.Report("Wait..." + i*100 / lst_best_move.Count + "%");
+                    if (progress != null) progress.Report("Wait..." + i*100 / lst_best_move.Count + "%");
                     #region ходим в проверяемые точки
                     if (counter_moves > MAX_COUNTMOVES) break;
                         //**************делаем ход***********************************
@@ -2422,7 +2452,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
                         #endregion
                         //теперь ходит другой игрок ===========================================================================
 
-                        StateOwn result = Play(Enemy);
+                        StateOwn result = Play(Enemy, progress);
 
                         recursion_depth--;
 
