@@ -2082,9 +2082,12 @@ ld.AddRange(pat.Distinct(new DotEq()));
 #if DEBUG
             {
                 sW2.Start();
+                if (DebugInfo.Progress != null) DebugInfo.Progress.Report($"CheckMove({Player})...");
                 DebugInfo.StringMSG = $"CheckMove({Player})...";
             }
 #endif
+
+
             Goal GoalPlayer = new Goal();
             Goal GoalEnemy = new Goal();
             bm = CheckMove(Player, GoalPlayer);
@@ -2092,12 +2095,12 @@ ld.AddRange(pat.Distinct(new DotEq()));
             {
                 bm.Tag = $"CheckMove({Player})";
                 bm.NumberPattern = 777; //777-ход в результате которого получается окружение - компьютер побеждает
-                //bm.Rating = 0;
                 moves.Add(bm);
 #if DEBUG
                 {
                     sW2.Stop();
-                    DebugInfo.lstDBG1.Add($"CheckMove {Player} - " + sW2.Elapsed.Milliseconds.ToString());
+                    DebugInfo.lstDBG1.Add($"CheckMove {Player} - {sW2.Elapsed.Milliseconds.ToString()}");
+                    if (DebugInfo.Progress != null) DebugInfo.Progress.Report($"CheckMove {Player} - {sW2.Elapsed.Milliseconds.ToString()}; CheckMove {Enemy}...");
                     sW2.Reset();
                 }
 #endif
@@ -2114,20 +2117,18 @@ ld.AddRange(pat.Distinct(new DotEq()));
             {
                 bm.Tag = $"CheckMove({Enemy})";
                 bm.NumberPattern = 666; //666-ход в результате которого получается окружение -компьютер проигрывает
-                //bm.Rating = 1;
                 moves.Add(bm);
 #if DEBUG
                 {
                     sW2.Stop();
-                    DebugInfo.lstDBG1.Add($"CheckMove {Enemy} - " + sW2.Elapsed.Milliseconds.ToString());
+                    DebugInfo.lstDBG1.Add($"CheckMove {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}");
+                    if (DebugInfo.Progress != null) DebugInfo.Progress.Report($"CheckMove {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}; CheckPattern_vilochka...");
                     sW2.Reset();
                     //проверяем паттерны
                 }
 #endif
-
             }
-
-            //Проверка, кто больше окружит и будет ли угроза после окружения
+            #region Проверка, кто больше окружит и будет ли угроза после окружения
             if ((GoalPlayer.CountBlocked - GoalEnemy.CountBlocked) > 0)
             {
                 moves.Find(d => d.NumberPattern == 777).Rating = 0;
@@ -2156,17 +2157,17 @@ ld.AddRange(pat.Distinct(new DotEq()));
 #endif
                 return moves;
             }
-
+            #endregion
             #region CheckPattern_vilochka
 #if DEBUG
             {
                 sW2.Start();
                 DebugInfo.StringMSG = "CheckPattern_vilochka проверяем ходы на два вперед...";
+                if (DebugInfo.Progress != null) DebugInfo.Progress.Report(DebugInfo.StringMSG);
             }
 #endif
 
             bm = CheckPattern_vilochka(Player);
-            //bm = CheckPatternVilka1x1(Player);
             if (bm != null)
             {
 #if DEBUG
@@ -2179,8 +2180,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 moves.Add(bm);
                 return moves;
             }
-            
-            //bm = CheckPatternVilka1x1(Enemy);
+
             bm = CheckPattern_vilochka(Enemy);
             if (bm != null)
             {
@@ -2193,11 +2193,13 @@ ld.AddRange(pat.Distinct(new DotEq()));
                     DebugInfo.lstDBG2.Add(bm.ToString() + "-->CheckPattern_vilochka ");
 
                     sW2.Stop();
-                    DebugInfo.lstDBG1.Add("CheckPattern_vilochka -" + sW2.Elapsed.Milliseconds.ToString());
-
+                    DebugInfo.lstDBG1.Add($"CheckPattern_vilochka - {sW2.Elapsed.Milliseconds.ToString()}");
+                    if (DebugInfo.Progress != null)
+                    {
+                        DebugInfo.Progress.Report($"CheckPattern_vilochka - {sW2.Elapsed.Milliseconds.ToString()}; CheckPatternVilka1x1...");
+                    }
                     sW2.Reset();
                     sW2.Start();
-
                 }
 #endif
                 #endregion
@@ -2225,7 +2227,12 @@ ld.AddRange(pat.Distinct(new DotEq()));
 #if DEBUG
             {
                 sW2.Stop();
-                DebugInfo.lstDBG1.Add($"CheckPatternVilka1x1 {Player} {Enemy} - " + sW2.Elapsed.Milliseconds.ToString());
+                DebugInfo.lstDBG1.Add($"CheckPatternVilka1x1 {Player} {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}");
+                if (DebugInfo.Progress != null)
+                {
+                    DebugInfo.Progress.Report($"CheckPatternVilka1x1 {Player} {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}; CheckPatternVilka2x2...");
+                }
+
                 sW2.Reset();
                 sW2.Start();
                 DebugInfo.StringMSG = "CheckPatternVilka2x2...";
@@ -2235,7 +2242,12 @@ ld.AddRange(pat.Distinct(new DotEq()));
 #if DEBUG
             {
                 sW2.Stop();
-                DebugInfo.lstDBG1.Add($"CheckPatternVilka2x2({Player}) - " + sW2.Elapsed.Milliseconds.ToString());
+                DebugInfo.lstDBG1.Add($"CheckPatternVilka2x2({Player}) - {sW2.Elapsed.Milliseconds.ToString()}");
+                if (DebugInfo.Progress != null)
+                {
+                    DebugInfo.Progress.Report($"CheckPatternVilka2x2({Player}) - {sW2.Elapsed.Milliseconds.ToString()}; CheckPatterns...");
+                }
+
                 sW2.Reset();
                 sW2.Start();
                 DebugInfo.StringMSG = $"CheckPatterns {Player}...";
@@ -2245,7 +2257,8 @@ ld.AddRange(pat.Distinct(new DotEq()));
 #if DEBUG
             {
                 sW2.Stop();
-                DebugInfo.lstDBG1.Add($"CheckPatterns({Player}) -" + sW2.Elapsed.Milliseconds.ToString());
+                DebugInfo.lstDBG1.Add($"CheckPatterns({Player}) - {sW2.Elapsed.Milliseconds.ToString()}");
+                if (DebugInfo.Progress != null) DebugInfo.Progress.Report($"CheckPatterns({Player}) - {sW2.Elapsed.Milliseconds.ToString()}");
                 sW2.Reset();
                 sW2.Start();
                 DebugInfo.StringMSG = $"CheckPatterns {Enemy}...";
@@ -2256,6 +2269,7 @@ ld.AddRange(pat.Distinct(new DotEq()));
             {
                 sW2.Stop();
                 DebugInfo.lstDBG1.Add($"CheckPatterns({Enemy}) -" + sW2.Elapsed.Milliseconds.ToString());
+                if (DebugInfo.Progress != null) DebugInfo.Progress.Report(DebugInfo.lstDBG1.Last());
                 sW2.Reset();
                 sW2.Start();
                 DebugInfo.StringMSG = $"CheckPatternVilkaNextMove {StateOwn.Computer}...";
@@ -2343,11 +2357,8 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 d.Rating += counter_moves;
             }
 
-            //tempmove = lst_best_move.Where(dt => (dt.iNumberPattern == 777 & dt.Rating == 1)
-            //                                   || (dt.iNumberPattern == 666 & dt.Rating == lst_best_move.Min(d => d.Rating))).ElementAtOrDefault(0);
             tempmove = lst_best_move.Where(dt => (dt.NumberPattern == 777 & dt.Rating == lst_best_move.Min(d => d.Rating))
                                        || (dt.NumberPattern == 666 & dt.Rating == lst_best_move.Min(d => d.Rating))).ElementAtOrDefault(0);
-
 
                 //если есть паттерн на окружение противника тоже устанавливается бест мув
                 if (tempmove != null)
