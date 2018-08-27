@@ -2017,9 +2017,11 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 #endregion
                 counter_moves = 0;
                 Lst_branch.Clear();
+                DebugInfo.lstDBG1.Clear();
+                DebugInfo.lstDBG2.Clear();
 
-                //Проигрываем разные комбинации
-                recursion_depth = 0;
+            //Проигрываем разные комбинации
+            recursion_depth = 0;
                 Play(StateOwn.Computer, progress);
 
                 //foreach (Dot d in Lst_branch) DebugInfo.lstDBG2.Add(d.ToString() + " - " + d.Tag);
@@ -2073,21 +2075,15 @@ ld.AddRange(pat.Distinct(new DotEq()));
         /// <returns></returns>
         private List<Dot> BestMove(StateOwn Player, IProgress<string> progress)
         {
-            DebugInfo.lstDBG1.Clear();
-            DebugInfo.lstDBG2.Clear();
+            //DebugInfo.lstDBG1.Clear();
+            //DebugInfo.lstDBG2.Clear();
             //string strDebug = string.Empty;
             List<Dot> moves = new List<Dot>();
             Dot bm;
             StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
-#if DEBUG
-            {
-                sW2.Start();
-                if (progress != null) progress.Report($"CheckMove({Player})...");
-                DebugInfo.StringMSG = $"CheckMove({Player})...";
-            }
-#endif
 
-            #region ParallelTasks
+#region ParallelTasks
+
             Goal GoalPlayer = new Goal();
             Goal GoalEnemy = new Goal();
 
@@ -2095,49 +2091,29 @@ ld.AddRange(pat.Distinct(new DotEq()));
             Parallel.Invoke(
             () =>
             {
+                StartWatch($"CheckMove({Player})...", progress);
                 bm = CheckMove(Player, GoalPlayer);
                 if (bm != null)
                 {
                     bm.Tag = $"CheckMove({Player})";
                     bm.NumberPattern = 777; //777-ход в результате которого получается окружение - компьютер побеждает
                     moves.Add(bm);
-#if DEBUG
-                    {
-                        sW2.Stop();
-                        DebugInfo.lstDBG1.Add($"CheckMove {Player} - {sW2.Elapsed.Milliseconds.ToString()}");
-                        if (progress != null) progress.Report($"CheckMove {Player} - {sW2.Elapsed.Milliseconds.ToString()}; CheckMove {Enemy}...");
-                        sW2.Reset();
-                    }
-#endif
                 }
-#if DEBUG
-                {
-                    sW2.Start();
-                    DebugInfo.StringMSG = $"CheckMove({Enemy})...";
-                }
-#endif
-            },  // close first Action
+                StopWatch($"CheckMove {Player} - {sW2.Elapsed.Milliseconds.ToString()}; CheckMove {Enemy}...", progress);
+            },  // close CheckMove({Player})
             () =>
             {
+                StartWatch($"CheckMove({Enemy})...", progress);
                 bm = CheckMove(Enemy, GoalEnemy);
                 if (bm != null)
                 {
                     bm.Tag = $"CheckMove({Enemy})";
                     bm.NumberPattern = 666; //666-ход в результате которого получается окружение -компьютер проигрывает
                     moves.Add(bm);
-#if DEBUG
-                    {
-                        sW2.Stop();
-                        DebugInfo.lstDBG1.Add($"CheckMove {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}");
-                        if (progress != null) progress.Report($"CheckMove {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}; CheckPattern_vilochka...");
-                        sW2.Reset();
-                        //проверяем паттерны
-                    }
-#endif
                 }
-            } //close second Action
+                StopWatch($"CheckMove {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+            } //close CheckMove({Enemy})
         ); //close parallel.invoke
-
             #region Проверка, кто больше окружит и будет ли угроза после окружения
             if ((GoalPlayer.CountBlocked - GoalEnemy.CountBlocked) > 0)
             {
@@ -2168,21 +2144,12 @@ ld.AddRange(pat.Distinct(new DotEq()));
                 return moves;
             }
             #endregion
-
-            #endregion
-
-
-            #region CheckPattern_vilochka
-#if DEBUG
-            {
-                sW2.Start();
-                DebugInfo.StringMSG = "CheckPattern_vilochka проверяем ходы на два вперед...";
-                if (progress != null) progress.Report(DebugInfo.StringMSG);
-            }
-#endif
+           
             Parallel.Invoke(
+            #region CheckPattern_vilochka
             () =>
             {
+                StartWatch($"CheckPattern_vilochka {Player} ...", progress);
                 bm = CheckPattern_vilochka(Player);
                 if (bm != null)
                 {
@@ -2195,125 +2162,70 @@ ld.AddRange(pat.Distinct(new DotEq()));
                     bm.NumberPattern = 777; //777-ход в результате которого получается окружение -компьютер побеждает
                     moves.Add(bm);
                 }
-            },  // close first Action
+                StopWatch($"CheckPattern_vilochka {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+            },  // close CheckPattern_vilochka {Player}
             () =>
             {
+                StartWatch($"CheckPattern_vilochka {Enemy} ...", progress);
                 bm = CheckPattern_vilochka(Enemy);
                 if (bm != null)
                 {
                     bm.Tag = "CheckPattern_vilochka(" + Enemy + ")";
                     bm.NumberPattern = 666; //777-ход в результате которого получается окружение -компьютер побеждает
                     moves.Add(bm);
-                    #region DEBUG
-#if DEBUG
-                    {
-                        DebugInfo.lstDBG2.Add(bm.ToString() + "-->CheckPattern_vilochka ");
-
-                        sW2.Stop();
-                        DebugInfo.lstDBG1.Add($"CheckPattern_vilochka - {sW2.Elapsed.Milliseconds.ToString()}");
-                        if (DebugInfo.Progress != null)
-                        {
-                            DebugInfo.Progress.Report($"CheckPattern_vilochka - {sW2.Elapsed.Milliseconds.ToString()}; CheckPatternVilka1x1...");
-                        }
-                        sW2.Reset();
-                        sW2.Start();
-                    }
-#endif
-                    #endregion
                 }
-            } //close second Action
-        ); //close parallel.invoke
+                StopWatch($"CheckPattern_vilochka {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+            }, //close CheckPattern_vilochka {Enemy}
             #endregion
-
             #region CheckPatternVilka1x1 проверяем ходы на два вперед на гарантированное окружение
-            Parallel.Invoke(
-            () =>
-            {
-                bm = CheckPatternVilka1x1(Player);
-                if (bm!=null)
-                {
-                    moves.Add(bm);
-                }
+                        () =>
+                        {
+                            StartWatch($"CheckPatternVilka1x1 {Player} ...", progress);
+                            bm = CheckPatternVilka1x1(Player);
+                            if (bm != null)
+                            {
+                                moves.Add(bm);
+                            }
+                            StopWatch($"CheckPatternVilka1x1 {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+                        },  // close CheckPatternVilka1x1(Player) Action
+                        () =>
+                        {
+                            StartWatch($"CheckPatternVilka1x1 {Enemy} ...", progress);
+                            bm = CheckPatternVilka1x1(Enemy);
+                            if (bm != null)
+                            {
+                                moves.Add(bm);
+                            }
+                            StopWatch($"CheckPatternVilka1x1 {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
 
-            },  // close first Action
-            () =>
-            {
-                bm = CheckPatternVilka1x1(Enemy);
-                if (bm != null)
-                {
-                    moves.Add(bm);
-                }
-            } //close second Action
-        ); //close parallel.invoke
+                        }, //close CheckPatternVilka1x1(Enemy) Action
             #endregion
-
-#if DEBUG
-            {
-                sW2.Stop();
-                DebugInfo.lstDBG1.Add($"CheckPatternVilka1x1 {Player} {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}");
-                if (DebugInfo.Progress != null)
-                {
-                    DebugInfo.Progress.Report($"CheckPatternVilka1x1 {Player} {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}; CheckPatternVilka2x2...");
-                }
-
-                sW2.Reset();
-                sW2.Start();
-                DebugInfo.StringMSG = "CheckPatternVilka2x2...";
-            }
-#endif
-
             #region Check vilka2x2
-            Parallel.Invoke(
-            () =>
-            {
-                bm = CheckPatternVilka2x2(StateOwn.Human);
-                if (bm != null) moves.Add(bm);
-            },  // close first Action
-            () =>
-            {
-                bm = CheckPatternVilka2x2(StateOwn.Computer);
-                if (bm != null) moves.Add(bm);
-            } //close second Action
-        ); //close parallel.invoke
+                        () =>
+                        {
+                            StartWatch($"CheckPatternVilka2x2 {Player} ...", progress);
+                            bm = CheckPatternVilka2x2(Player);
+                            if (bm != null) moves.Add(bm);
+                            StopWatch($"CheckPatternVilka2x2 {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+                        },  // close Check vilka2x2 Player
+                        () =>
+                        {
+                            StartWatch($"CheckPatternVilka2x2 {Enemy} ...", progress);
+                            bm = CheckPatternVilka2x2(Enemy);
+                            if (bm != null) moves.Add(bm);
+                            StopWatch($"CheckPatternVilka2x2 {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+                        } //close Check vilka2x2 Enemy
+            #endregion 
+            ); //close parallel.invoke
+            if (moves.Count > 0) return moves;
+ #endregion
 
-            #endregion
-#if DEBUG
-            {
-                sW2.Stop();
-                DebugInfo.lstDBG1.Add($"CheckPatternVilka2x2({Player}) - {sW2.Elapsed.Milliseconds.ToString()}");
-                if (DebugInfo.Progress != null)
-                {
-                    DebugInfo.Progress.Report($"CheckPatternVilka2x2({Player}) - {sW2.Elapsed.Milliseconds.ToString()}; CheckPatterns...");
-                }
-
-                sW2.Reset();
-                sW2.Start();
-                DebugInfo.StringMSG = $"CheckPatterns {Player}...";
-            }
-#endif
-//            moves.AddRange(CheckPattern(Player));
-//#if DEBUG
-//            {
-//                sW2.Stop();
-//                DebugInfo.lstDBG1.Add($"CheckPatterns({Player}) - {sW2.Elapsed.Milliseconds.ToString()}");
-//                if (progress != null) progress.Report($"CheckPatterns({Player}) - {sW2.Elapsed.Milliseconds.ToString()}");
-//                sW2.Reset();
-//                sW2.Start();
-//                DebugInfo.StringMSG = $"CheckPatterns {Enemy}...";
-//            }
-//#endif
-//            moves.AddRange(CheckPattern(Enemy));
-//#if DEBUG
-//            {
-//                sW2.Stop();
-//                DebugInfo.lstDBG1.Add($"CheckPatterns({Enemy}) -" + sW2.Elapsed.Milliseconds.ToString());
-//                if (progress != null) progress.Report(DebugInfo.lstDBG1.Last());
-//                sW2.Reset();
-//                sW2.Start();
-//                DebugInfo.StringMSG = $"CheckPatternVilkaNextMove {StateOwn.Computer}...";
-//            }
-//#endif
-
+            StartWatch($"CheckPattern {Player} ...", progress);
+            moves.AddRange(CheckPattern(Player));
+            StopWatch($"CheckPattern {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+            StartWatch($"CheckPattern {Enemy} ...", progress);
+            moves.AddRange(CheckPattern(Enemy));
+            StopWatch($"CheckPattern {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
 
             #region CheckPatternVilkaNextMove пока тормозит сильно - переработать!
             //            bm = CheckPatternVilkaNextMove(StateOwn.Computer);
@@ -2353,6 +2265,23 @@ ld.AddRange(pat.Distinct(new DotEq()));
             return moves.Where(d => d != null).Distinct(new DotEq()).ToList();
         }
 
+        private void StartWatch(string MSG, IProgress<string> progress)
+        {
+#if DEBUG
+            sW2.Start();
+            if (progress != null) progress.Report(MSG);
+            DebugInfo.StringMSG = MSG;
+#endif
+        }
+        private void StopWatch(string MSG, IProgress<string> progress)
+        {
+#if DEBUG
+            sW2.Stop();
+            DebugInfo.lstDBG1.Add(MSG);
+            if (progress != null) progress.Report(MSG);
+            sW2.Reset();
+#endif
+        }
         //
         int counter_moves = 0;
             int res_last_move; //хранит результат хода
