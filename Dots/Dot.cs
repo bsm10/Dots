@@ -261,7 +261,7 @@ namespace DotsGame
                 //else s = " None";
                 //s = Blocked ? X + ":" + Y + s + " Blocked" : X + ":" + Y + s + " Rating: " + Rating + "; " + Tag;
                 s = X + ":" + Y + "; " +
-                    Own + "; " + Blocked + "; Rating: " + Rating + "; Tag: " + Tag + "; iNumberPattern: " + NumberPattern;
+                    Own + "; " + Blocked + "; Rating: " + Rating + "; Tag: " + Tag + "; NumberPattern: " + NumberPattern;
                 return s;
             }
 
