@@ -156,7 +156,7 @@ namespace DotsGame
             /// <summary>
             /// Точки по соседству с єтой точкой
             /// </summary>
-            public List<Dot> NeiborDots { get; } = new List<Dot>();
+            public List<Dot> NeiborDots { get; set; } 
             public bool Fixed { get; set; }
             public int CountBlockedDots => BlokingDots.Count;
             public bool Selected { get; set; }
@@ -204,13 +204,13 @@ namespace DotsGame
                 X = x;
                 Y = y;
                 BlokingDots = new List<Dot>();
+                NeiborDots = new List<Dot>();
                 Own = Owner;
                 this.NumberPattern = NumberPattern;
                 this.Rating = Rating;
                 this.Tag = Tag;
                 //IndexRelation = IndexDot;
             }
-
             public Dot(Point p)
             {
                 X = p.X;
@@ -220,7 +220,6 @@ namespace DotsGame
                 NumberPattern = 0;
                 Rating = Rating;
             }
-
             public Dot(Dot dot)
             {
                 X = dot.X;
@@ -239,7 +238,6 @@ namespace DotsGame
                 NumberPattern = dot.NumberPattern;
                 Rating = dot.Rating;
             }
-
             /// <summary>
             /// Восстанавливаем первоначальное состояние точки
             /// </summary>
@@ -278,21 +276,12 @@ namespace DotsGame
             {
                 return (X == dot.X) & (Y == dot.Y);
             }
-            //public bool IsNeiborDots(Dot dot)//возвращает истину если соседние точки рядом. 
-            //{
-            //    if (dot.Blocked | dot.Blocked | dot.Own != Own)
-            //    {
-            //        return false;
-            //    }
-            //    return Math.Abs(x -dot.x) <= 1 & Math.Abs(y -dot.y) <= 1;
-
-            //}
             private int _IndexRel;
             // private Dot dot;
 
             public int IndexRelation
             {
-                get { return _IndexRel; }
+                get => _IndexRel;
                 set
                 {
                     _IndexRel = value;
@@ -308,7 +297,6 @@ namespace DotsGame
                                 }
                             }
                         }
-
                     }
                 }
 

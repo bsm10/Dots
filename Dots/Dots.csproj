@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <None Remove="GameDots.cs~RF3ec677fa.TMP" />
+    <None Remove="GameDots.cs~RFa971abf5.TMP" />
   </ItemGroup>
 
   <ItemGroup>
