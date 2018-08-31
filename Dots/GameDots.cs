@@ -203,6 +203,7 @@ namespace GameCore
             }
         }
 
+        private IProgress<string> progress;
 
 #if DEBUG
         Stopwatch stopWatch = new Stopwatch();//для диагностики времени выполнения
@@ -1040,7 +1041,7 @@ namespace GameCore
         /// </summary>
         /// <param name="Owner">владелец проверяемых точек</param>
         /// <returns>Возвращает ход(точку) который завершает окружение</returns>
-        private Dot CheckMove(StateOwn Owner, IProgress<string> progress = null)
+        private Dot CheckMove(StateOwn Owner)
         {
 #if DEBUG
             StartWatch($"CheckMove({Owner})...", progress);
@@ -2064,7 +2065,7 @@ namespace GameCore
             }
             return result;
         }
-        private Dot PickComputerMove(Dot enemy_move, IProgress<string> progress)
+        private Dot PickComputerMove(Dot enemy_move)
         {
             DebugInfo.Progress = progress;
             #region если первый ход выбираем произвольную соседнюю точку
@@ -2108,7 +2109,7 @@ namespace GameCore
 
             //Проигрываем разные комбинации
             recursion_depth = 0;
-            Play(StateOwn.Computer, progress);
+            Play(StateOwn.Computer);
 
             //foreach (Dot d in Lst_branch) DebugInfo.lstDBG2.Add(d.ToString() + " - " + d.Tag);
             Dot move = Lst_branch.Where(dt => dt.Rating == Lst_branch.Min(d => d.Rating)).ElementAtOrDefault(0);
@@ -2170,39 +2171,29 @@ namespace GameCore
 
             #region ParallelTasks
 
-            GoalPlayer GoalPlayer = new GoalPlayer();
-            GoalPlayer GoalEnemy = new GoalPlayer();
-            //bm = CheckMove(Player, progress, GoalPlayer);
-            //if (bm != null) moves.Add(bm);
-            //bm = CheckMove(Enemy, progress, GoalPlayer);
-            //if (bm != null)
-            //{
-            //    moves.Add(bm);
-            //    #region Проверка, кто больше окружит и будет ли угроза после окружения
-            //    return MovesAnaliz(moves, GoalPlayer, GoalEnemy);
-            //    #endregion
-
-            //}
-
+        int BlockedPlayer = 0;
+        int BlockedEnemy = 0;
             //Perform three tasks in parallel on the source array
-                Parallel.Invoke(
-                () =>
-                {
-                    bm = CheckMove(Player, progress);
-                    if (bm != null) moves.Add(bm);
-                },  // close CheckMove({Player})
-                () =>
-                {
-                    bm = CheckMove(Enemy, progress);
-                    if (bm != null) moves.Add(bm);
-                } //close CheckMove({Enemy})
+        Parallel.Invoke(
+           () =>
+           {
+               bm = CheckMove(Player);
+               if (bm != null) moves.Add(bm);
+               BlockedPlayer = Goal.CountBlocked;
+           },  // close CheckMove({Player})
+           () =>
+           {
+               bm = CheckMove(Enemy);
+               if (bm != null) moves.Add(bm);
+               BlockedEnemy = Goal.CountBlocked;
+           } //close CheckMove({Enemy})
 
             ); //close parallel.invoke
             if (bm != null)
             {
                 moves.Add(bm);
                 #region Проверка, кто больше окружит и будет ли угроза после окружения
-                return MovesAnaliz(moves, GoalPlayer, GoalEnemy);
+                return MovesAnaliz(moves, BlockedPlayer - BlockedEnemy);
                 #endregion
 
             }
@@ -2293,26 +2284,26 @@ namespace GameCore
             //StopWatch($"CheckPattern {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
 
             #region CheckPatternVilkaNextMove пока тормозит сильно - переработать!
-            bm = CheckPatternVilkaNextMove(StateOwn.Computer);
-            if (bm != null)
-            {
-                #region DEBUG
-#if DEBUG
-                {
-                    DebugInfo.lstDBG2.Add($"{bm.ToString()} player {StateOwn.Computer} CheckPatternVilkaNextMove {iNumberPattern})");
-                }
-#endif
-                #endregion
-                moves.Add(bm); //return bm;
-            }
-            #region DEBUG
+//            bm = CheckPatternVilkaNextMove(StateOwn.Computer);
+//            if (bm != null)
+//            {
+//                #region DEBUG
+//#if DEBUG
+//                {
+//                    DebugInfo.lstDBG2.Add($"{bm.ToString()} player {StateOwn.Computer} CheckPatternVilkaNextMove {iNumberPattern})");
+//                }
+//#endif
+//                #endregion
+//                moves.Add(bm); //return bm;
+//            }
+//            #region DEBUG
 
-#if DEBUG
-            sW2.Stop();
-            DebugInfo.lstDBG1.Add("CheckPatternVilkaNextMove -" + sW2.Elapsed.Milliseconds.ToString());
-            sW2.Reset();
-#endif
-            #endregion
+//#if DEBUG
+//            sW2.Stop();
+//            DebugInfo.lstDBG1.Add("CheckPatternVilkaNextMove -" + sW2.Elapsed.Milliseconds.ToString());
+//            sW2.Reset();
+//#endif
+//            #endregion
             #endregion
             #region CheckPatternMove
             //moves.AddRange(CheckPatternMove(Player));
@@ -2330,9 +2321,9 @@ namespace GameCore
             return moves.Where(d => d != null).Distinct(new DotEq()).ToList();
         }
 
-        private static List<Dot> MovesAnaliz(List<Dot> moves, GoalPlayer goalPlayer, GoalPlayer goalEnemy)
+        private  List<Dot> MovesAnaliz(List<Dot> moves, int DeltaBlocked)
         {
-            if ((goalPlayer.CountBlocked - goalEnemy.CountBlocked) > 0)
+            if (DeltaBlocked > 0) 
             {
                 moves.Where(dt => dt.NumberPattern == 777).Select(dt => dt.Rating = 0);
                 moves.Where(dt => dt.NumberPattern == 666).Select(dt => dt.Rating = 1);
@@ -2345,7 +2336,7 @@ namespace GameCore
                 }
 #endif
             }
-            else if ((goalPlayer.CountBlocked - goalEnemy.CountBlocked) < 0)
+            else if (DeltaBlocked < 0)
             {
                 moves.Where(dt => dt.NumberPattern == 777).Select(dt => dt.Rating = 1);
                 moves.Where(dt => dt.NumberPattern == 666).Select(dt => dt.Rating = 0);
@@ -2395,7 +2386,7 @@ namespace GameCore
         /// <param name="Player">Human</param>
         /// <param name="player2">Computer</param>
         /// <returns></returns>
-        private StateOwn Play(StateOwn Player, IProgress<string> progress)
+        private StateOwn Play(StateOwn Player)
         {
             StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
 
@@ -2478,7 +2469,7 @@ namespace GameCore
                     #endregion
                     //теперь ходит другой игрок ===========================================================================
 
-                    StateOwn result = Play(Enemy, progress);
+                    StateOwn result = Play(Enemy);
 
                     recursion_depth--;
 
@@ -2643,14 +2634,14 @@ namespace GameCore
         //    return result;
         //}
 
-        public Task<int> MovePlayerAsync_old(StateOwn Player, IProgress<string> progress, Dot pl_move = null)
+        public Task<int> MovePlayerAsync_old(StateOwn Player, Dot pl_move = null)
         {
             TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
             Task.Factory.StartNew(() =>
             {
                 try
                 {
-                    tcs.SetResult(MovePlayer(Player, progress, pl_move));
+                    tcs.SetResult(MovePlayer(Player, pl_move));
                 }
                 catch (Exception ex)
                 {
@@ -2661,14 +2652,15 @@ namespace GameCore
         }
         //public Progress<string> Progress { get; set; } = new Progress<string>(s => DebugInfo.StringMSG = s);
 
-        public Task<int> MovePlayerAsync(StateOwn Player, IProgress<string> progress = null, Dot pl_move = null)
+        public Task<int> MovePlayerAsync(StateOwn Player, IProgress<string> _progress = null, Dot pl_move = null)
         {
             TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
+            progress = _progress;
             Task.Factory.StartNew(async () =>
             {
                 try
                 {
-                    tcs.SetResult(await Task.Factory.StartNew(() => MovePlayer(Player, progress, pl_move),
+                    tcs.SetResult(await Task.Factory.StartNew(() => MovePlayer(Player, pl_move),
                                                              TaskCreationOptions.LongRunning));
                 }
                 catch (Exception ex)
@@ -2694,11 +2686,11 @@ namespace GameCore
         /// 1 - игра окончена
         /// -1 - ошибка
         /// </returns>
-        public int MovePlayer(StateOwn Player, IProgress<string> progress = null, Dot pl_move = null)
+        public int MovePlayer(StateOwn Player, Dot pl_move = null)
         {
             if (pl_move == null)
             {
-                pl_move = PickComputerMove(LastMove, progress);
+                pl_move = PickComputerMove(LastMove);
             }
             if (MakeMove(pl_move, Player, addForDraw: true) == -1)
             {
