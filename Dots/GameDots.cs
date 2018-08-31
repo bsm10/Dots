@@ -245,7 +245,7 @@ namespace GameCore
             ListLinks = new List<Link>();
             //ListMoves = new List<Dot>();
             dots_in_region = new List<Dot>();
-            GoalPlayer = new Goal();
+            Goal = new GoalPlayer();
         }
 
         private void StackMoves_OnRemove(object sender, ListDotsEventArgs e)
@@ -775,8 +775,8 @@ namespace GameCore
         {
             int Count_blocked_before_Human; int Count_blocked_after_Human;
             int Count_blocked_before_Comp; int Count_blocked_after_Comp;
-            GoalPlayer.Player = 0;
-            GoalPlayer.CountBlocked = 0;
+            Goal.Player = 0;
+            Goal.CountBlocked = 0;
             Count_blocked_before_Human = (from Dot d in StackMoves where d.Own == StateOwn.Human && d.Blocked == true select d).Count();
             Count_blocked_before_Comp = (from Dot d in StackMoves where d.Own == StateOwn.Computer && d.Blocked == true select d).Count();
             if (CheckValidMove(this[dot.X, dot.Y]))//если точка не занята
@@ -803,13 +803,13 @@ namespace GameCore
             int result_Comp = Count_blocked_after_Comp - Count_blocked_before_Comp;
             if (result_Human != 0)
             {
-                GoalPlayer.Player = StateOwn.Computer;
-                GoalPlayer.CountBlocked = result_Human;
+                Goal.Player = StateOwn.Computer;
+                Goal.CountBlocked = result_Human;
             }
             if (result_Comp != 0)
             {
-                GoalPlayer.Player = StateOwn.Human;
-                GoalPlayer.CountBlocked = result_Comp;
+                Goal.Player = StateOwn.Human;
+                Goal.CountBlocked = result_Comp;
             }
 
             return result_Human + result_Comp;
@@ -956,7 +956,7 @@ namespace GameCore
         {
             int res = MakeMove(dot, Player);
             StateOwn pl = Player == StateOwn.Computer ? StateOwn.Human : StateOwn.Computer;
-            if (GoalPlayer.Player == pl)// первое условие -ход в уже окруженный регион, 
+            if (Goal.Player == pl)// первое условие -ход в уже окруженный регион, 
             {
                 UndoMove(dot);
                 return true; // да будет окружена
@@ -1040,7 +1040,7 @@ namespace GameCore
         /// </summary>
         /// <param name="Owner">владелец проверяемых точек</param>
         /// <returns>Возвращает ход(точку) который завершает окружение</returns>
-        private Dot CheckMove(StateOwn Owner, IProgress<string> progress = null, Goal _Goal = null)
+        private Dot CheckMove(StateOwn Owner, IProgress<string> progress = null)
         {
 #if DEBUG
             StartWatch($"CheckMove({Owner})...", progress);
@@ -1072,19 +1072,19 @@ namespace GameCore
                 //делаем ход
                 Dot d = ld.DotE;
                 GameDots_Copy.MakeMove(d, Owner);
-                if (GameDots_Copy.GoalPlayer.Player == Owner)
+                if (GameDots_Copy.Goal.Player == Owner)
                 {
-                    happy_dots.Add(new Dot(d.X, d.Y, d.Own, 777, GameDots_Copy.GoalPlayer.CountBlocked));
+                    happy_dots.Add(new Dot(d.X, d.Y, d.Own, 777, GameDots_Copy.Goal.CountBlocked));
                 }
                 GameDots_Copy.UndoMove(d);
             }
             //выбрать точку, которая максимально окружит
             Dot result = happy_dots.Distinct(new DotEq()).Where(dt =>
              dt.Rating == happy_dots.Max(d => d.Rating)).FirstOrDefault();
-            if (result != null && _Goal != null)
+            if (result != null )
             {
-                _Goal.Player = Owner;
-                _Goal.CountBlocked = result.Rating;
+                GameDots_Copy.Goal.Player = Owner;
+                GameDots_Copy.Goal.CountBlocked = result.Rating;
                 result.Rating = 0;
             }
             GameDots_Copy = null;
@@ -1100,6 +1100,7 @@ namespace GameCore
         }
 
         private Dot CheckPatternVilkaNextMove(StateOwn Owner)
+            //Доработать!!! неправильно работает
         {
             GameDots GameDots_Copy = GetGameDotsCopy(ListMoves);
 
@@ -1112,7 +1113,8 @@ namespace GameCore
                     foreach (Dot dot_move in GameDots_Copy.NeighborDots(d).Where(v => v.Own == StateOwn.Empty))
                     {
                         //делаем ход
-                        int result_last_move = GameDots_Copy.MakeMove(dot_move, Owner);
+                        dot_move.Own = StateOwn.Computer;
+                        GameDots_Copy.Move(dot_move);
                         StateOwn pl = Owner == StateOwn.Computer ? StateOwn.Human : StateOwn.Computer;
                         Dot dt = GameDots_Copy.CheckMove(pl); // проверка чтобы не попасть в капкан
                         if (dt != null)
@@ -1122,7 +1124,7 @@ namespace GameCore
                         }
                         dot_ptn = GameDots_Copy.CheckPattern_vilochka(d.Own);
                         //-----------------------------------
-                        if (dot_ptn != null & result_last_move == 0)
+                        if (dot_ptn != null)
                         {
                             GameDots_Copy.UndoMove(dot_move);
                             return dot_move;
@@ -1916,7 +1918,7 @@ namespace GameCore
                 //делаем ход
                 int result_last_move = GameDots_Copy.MakeMove(l.Dot1, Owner);
                 result_last_move = GameDots_Copy.MakeMove(l.Dot2, Owner);
-                if (GameDots_Copy.GoalPlayer.Player == Owner)
+                if (GameDots_Copy.Goal.Player == Owner)
                 {
                     GameDots_Copy.UndoMove(l.Dot1);
                     GameDots_Copy.UndoMove(l.Dot2);
@@ -1979,9 +1981,9 @@ namespace GameCore
                 GameDots_Copy.Move(new Dot(d.DotE1, Owner));
                 //GameDots_Copy.MakeMove(d.DotE1, Owner);
                 GameDots_Copy.MakeMove(d.DotE3, Owner);
-                if (GameDots_Copy.GoalPlayer.Player == Owner)
+                if (GameDots_Copy.Goal.Player == Owner)
                 {
-                    d.DotE3.Rating = GameDots_Copy.GoalPlayer.CountBlocked;
+                    d.DotE3.Rating = GameDots_Copy.Goal.CountBlocked;
                     ld.Add(new Dot(d.DotE3));
                 }
                 GameDots_Copy.UndoMove(d.DotE3);
@@ -2038,9 +2040,9 @@ namespace GameCore
                 //GameDots_Copy.MakeMove(d1, Owner);
                 //GameDots_Copy.MakeMove(d2, Owner);
                 GameDots_Copy.MakeMove(d3, Owner);
-                if (GameDots_Copy.GoalPlayer.Player == Owner)
+                if (GameDots_Copy.Goal.Player == Owner)
                 {
-                    ch.DotE.Rating = GameDots_Copy.GoalPlayer.CountBlocked;
+                    ch.DotE.Rating = GameDots_Copy.Goal.CountBlocked;
                     ld.Add(new Dot(ch.DotE));
                 }
                 GameDots_Copy.UndoMove(d3);
@@ -2168,8 +2170,8 @@ namespace GameCore
 
             #region ParallelTasks
 
-            Goal GoalPlayer = new Goal();
-            Goal GoalEnemy = new Goal();
+            GoalPlayer GoalPlayer = new GoalPlayer();
+            GoalPlayer GoalEnemy = new GoalPlayer();
             //bm = CheckMove(Player, progress, GoalPlayer);
             //if (bm != null) moves.Add(bm);
             //bm = CheckMove(Enemy, progress, GoalPlayer);
@@ -2186,12 +2188,12 @@ namespace GameCore
                 Parallel.Invoke(
                 () =>
                 {
-                    bm = CheckMove(Player, progress, GoalPlayer);
+                    bm = CheckMove(Player, progress);
                     if (bm != null) moves.Add(bm);
                 },  // close CheckMove({Player})
                 () =>
                 {
-                    bm = CheckMove(Enemy, progress, GoalPlayer);
+                    bm = CheckMove(Enemy, progress);
                     if (bm != null) moves.Add(bm);
                 } //close CheckMove({Enemy})
 
@@ -2291,18 +2293,18 @@ namespace GameCore
             //StopWatch($"CheckPattern {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
 
             #region CheckPatternVilkaNextMove пока тормозит сильно - переработать!
-            //            bm = CheckPatternVilkaNextMove(StateOwn.Computer);
-            //            if (bm != null)
-            //            {
-            //                #region DEBUG
-            //#if DEBUG
-            //                {
-            //                    DebugInfo.lstDBG2.Add($"{bm.ToString()} player {StateOwn.Computer} CheckPatternVilkaNextMove {iNumberPattern})");
-            //                }
-            //#endif
-            //                #endregion
-            //                moves.Add(bm); //return bm;
-            //            }
+            bm = CheckPatternVilkaNextMove(StateOwn.Computer);
+            if (bm != null)
+            {
+                #region DEBUG
+#if DEBUG
+                {
+                    DebugInfo.lstDBG2.Add($"{bm.ToString()} player {StateOwn.Computer} CheckPatternVilkaNextMove {iNumberPattern})");
+                }
+#endif
+                #endregion
+                moves.Add(bm); //return bm;
+            }
             #region DEBUG
 
 #if DEBUG
@@ -2328,7 +2330,7 @@ namespace GameCore
             return moves.Where(d => d != null).Distinct(new DotEq()).ToList();
         }
 
-        private static List<Dot> MovesAnaliz(List<Dot> moves, Goal goalPlayer, Goal goalEnemy)
+        private static List<Dot> MovesAnaliz(List<Dot> moves, GoalPlayer goalPlayer, GoalPlayer goalEnemy)
         {
             if ((goalPlayer.CountBlocked - goalEnemy.CountBlocked) > 0)
             {
@@ -2446,7 +2448,7 @@ namespace GameCore
 
                     #region проверка на окружение
 
-                    if (GoalPlayer.Player == Player)
+                    if (Goal.Player == Player)
                     {
                         Dot dt_move = Lst_moves.First();
                         dt_move.Rating = counter_moves;
@@ -2457,7 +2459,7 @@ namespace GameCore
                         //return StateOwn.Computer;
                     }
                     //если ход в заведомо окруженный регион - пропускаем такой ход
-                    if (GoalPlayer.Player == Enemy)
+                    if (Goal.Player == Enemy)
                     {
                         UndoMove(move);
 
@@ -2738,12 +2740,12 @@ namespace GameCore
         public List<Dot> Lst_in_region_dots { get; set; } = new List<Dot>();
         public List<Dot> Lst_moves { get; set; } = new List<Dot>();
         public List<Dot> Lst_branch { get; set; } = new List<Dot>();
-        public Goal GoalPlayer { get; set; }
+        public GoalPlayer Goal { get; set; }
 
         /// <summary>
         /// Класс, который содержит информацию про игрока, который в результате своего хода окружил точки противника
         /// </summary>
-        public class Goal
+        public class GoalPlayer
         {
             public StateOwn Player { get; set; }
             public int CountBlocked { get; set; }
