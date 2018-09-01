@@ -203,6 +203,15 @@ namespace GameCore
             }
         }
 
+        public void LoadGame(List<Dot> ListDotForLoad)
+        {
+            foreach(Dot d in ListDotForLoad)
+            {
+                if(d.Own!=0) MakeMove(d, d.Own, addForDraw: true);
+            }
+
+        }
+
         private IProgress<string> progress;
 
 #if DEBUG
@@ -449,7 +458,7 @@ namespace GameCore
                 foreach (Dot d in Dots[ind].NeiborDots)
                 {
                     d.NeiborDots.Add(Dots[ind]);
-                    d.IndexRelation = dot.IndexRelation;
+                    d.IndexRelation = Dots[ind].IndexRelation;
                 }
                 StackMoves.Add(Dots[ind]);
                 //AddNeibor(Dots[ind]);
@@ -478,7 +487,7 @@ namespace GameCore
         /// <param name="dot1"></param>
         /// <param name="dot2"></param>
         /// <returns></returns>
-        public float Distance(Dot dot1, Dot dot2)
+        public static float Distance(Dot dot1, Dot dot2)
         {
             return (float)Math.Round(Math.Sqrt(Math.Pow((dot1.X - dot2.X), 2) + Math.Pow((dot1.Y - dot2.Y), 2)), 1);
         }
@@ -531,7 +540,7 @@ namespace GameCore
         private List<Dot> NeighborEmptyDots(Dot dot) => NeighborDots(dot).Where(dt => dt.Own == 0).ToList();
         public void UnmarkAllDots()
         {
-            Counter = 0;
+            //Counter = 0;
             foreach (Dot d in Dots)
             {
                 d.UnmarkDot();
@@ -694,6 +703,7 @@ namespace GameCore
             if (Counter == 1)
             {
                 DotChecked = dot;
+                UnmarkAllDots();
             }
             dot.Marked = true;
             List<Dot> lst = NeighborDotsSNWE(dot);
@@ -704,14 +714,14 @@ namespace GameCore
 
             {
                 DotChecked.Blocked = false;
-                //Counter--;
+                Counter--;
                 return false;
             }
             foreach (Dot d in lst)
             {
-                if (!d.Marked && d.Own == DotChecked.Own & !d.Blocked |
-                                d.Own == 0 |
-                                d.Own != DotChecked.Own & d.Blocked)
+                if (!d.Marked && d.Own == DotChecked.Own & !d.Blocked ||
+                    !d.Marked && d.Own == 0 ||
+                    !d.Marked && d.Blocked && d.Own != DotChecked.Own  )
                 {
                     if (!DotIsBlocked(d))
                     {
@@ -720,7 +730,7 @@ namespace GameCore
                 }
             }
             Counter--;
-            DotChecked.Blocked = true;
+            //DotChecked.Blocked = true;
             return true;
             ext:
             Counter--;
@@ -772,7 +782,7 @@ namespace GameCore
         /// <param name="dot"> точка куда делается ход </param>
         /// <param name="Owner"> владелец точки -целое 1-Игрок или 2 -Компьютер</param>
         /// <returns>количество окруженных точек, -1 если недопустимый ход; </returns>
-        private int MakeMove(Dot dot, StateOwn Owner = 0, bool addForDraw = false)//
+        private int MakeMove(Dot dot, StateOwn Owner, bool addForDraw = false)//
         {
             int Count_blocked_before_Human; int Count_blocked_after_Human;
             int Count_blocked_before_Comp; int Count_blocked_after_Comp;
@@ -782,10 +792,11 @@ namespace GameCore
             Count_blocked_before_Comp = (from Dot d in StackMoves where d.Own == StateOwn.Computer && d.Blocked == true select d).Count();
             if (CheckValidMove(this[dot.X, dot.Y]))//если точка не занята
             {
-                if (Owner != 0)
+                if (Owner == 0)
                 {
-                    dot.Own = Owner;
+                    return 0;
                 }
+                dot.Own = Owner;
                 Move(dot);
             }
             else return -1;//в случае невозможного хода
@@ -836,7 +847,7 @@ namespace GameCore
         {
             int counter = 0;
             Lst_blocked_dots.Clear(); Lst_in_region_dots.Clear();
-            UnmarkAllDots();
+            //UnmarkAllDots();
             if (d.Blocked | DotIsBlocked(d) == true)
             {
                 d.Blocked = true;
@@ -867,6 +878,26 @@ namespace GameCore
                 d.Blocked = false;
             }
             return counter;
+        }
+
+        private bool DotIsBlocked1(Dot d)
+        {
+            //foreach(Dot dt in this)
+            //{
+
+            //}
+            var q = from Dot dot1 in this
+                    where !dot1.Blocked && dot1.Own == d.Own ||
+                    !dot1.Blocked && dot1.Own == 0
+
+                    from Dot dot2 in NeighborDotsSNWE(dot1)
+                    where !dot2.Blocked && dot2.Own == d.Own ||
+                    !dot2.Blocked && dot2.Own == 0
+                    select new Chain(dot1, dot2);
+
+            q = q.Distinct(new ChainsComparer());
+            //select new ChainToFixed(d, dot,)
+            return false;
         }
 
 
@@ -1048,25 +1079,8 @@ namespace GameCore
 #endif
             GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
             List<Dot> happy_dots = new List<Dot>();
-            IEnumerable<Chain3Dots> qry = from Dot d1 in GameDots_Copy.GetDots(Owner)
-                                          from Dot d2 in GameDots_Copy.GetDots(Owner)
-                                          where d2.IndexRelation == d1.IndexRelation
-                                          && Distance(d1, d2) >= 2 && Distance(d1, d2) < 3
-                                          from Dot d3 in GameDots_Copy.GetDots(StateOwn.Empty)
-                                          where
-                                          GameDots_Copy.CommonDots(d1,d2).Contains(d3)
-                                          && Distance(d1, d3) >= 1 && Distance(d1, d3) < 2
-                                          && Distance(d2, d3) >= 1 && Distance(d2, d3) < 2
-                                          && GameDots_Copy.NeighborDotsSNWE(d3).Where(dt=>dt.Own==Owner).Count()<=2
-                                          ||
-                                          GameDots_Copy.CommonDots(d1, d2).Contains(d3)
-                                          && Distance(d1, d3) == 1 && Distance(d2, d3) == 2
-                                          && GameDots_Copy.NeighborDots(d3).Where(dt => dt.Own == Owner).Count() == 2
+            IEnumerable<Chain3Dots> qry = SelectDotsCheckMove(Owner, GameDots_Copy);
 
-
-                                          select new Chain3Dots(d1, d3, d2);
-
-            
             foreach (Chain3Dots ld in qry.Distinct(new Chains3DotsComparer()))
             //foreach (Dot d in qry)
             {
@@ -1082,7 +1096,7 @@ namespace GameCore
             //выбрать точку, которая максимально окружит
             Dot result = happy_dots.Distinct(new DotEq()).Where(dt =>
              dt.Rating == happy_dots.Max(d => d.Rating)).FirstOrDefault();
-            if (result != null )
+            if (result != null)
             {
                 GameDots_Copy.Goal.Player = Owner;
                 GameDots_Copy.Goal.CountBlocked = result.Rating;
@@ -1098,6 +1112,27 @@ namespace GameCore
             StopWatch($"CheckMove {Owner} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
 #endif
             return result;
+        }
+
+        private IEnumerable<Chain3Dots> SelectDotsCheckMove(StateOwn Owner, GameDots GameDots_Copy)
+        {
+            return from Dot d1 in GameDots_Copy.GetDots(Owner)
+                   from Dot d2 in GameDots_Copy.GetDots(Owner)
+                   where d2.IndexRelation == d1.IndexRelation
+                   && Distance(d1, d2) >= 2 && Distance(d1, d2) < 3
+                   from Dot d3 in GameDots_Copy.GetDots(StateOwn.Empty)
+                   where
+                   GameDots_Copy.CommonDots(d1, d2).Contains(d3)
+                   && Distance(d1, d3) >= 1 && Distance(d1, d3) < 2
+                   && Distance(d2, d3) >= 1 && Distance(d2, d3) < 2
+                   && GameDots_Copy.NeighborDotsSNWE(d3).Where(dt => dt.Own == Owner).Count() <= 2
+                   ||
+                   GameDots_Copy.CommonDots(d1, d2).Contains(d3)
+                   && Distance(d1, d3) == 1 && Distance(d2, d3) == 2
+                   && GameDots_Copy.NeighborDots(d3).Where(dt => dt.Own == Owner).Count() == 2
+
+
+                   select new Chain3Dots(d1, d3, d2);
         }
 
         private Dot CheckPatternVilkaNextMove(StateOwn Owner)
@@ -1150,7 +1185,7 @@ namespace GameCore
             return GD;
         }
 
-        private int iNumberPattern;
+        private int iNumberPattern = 0;
 
         private List<Dot> CheckPattern(StateOwn Owner)
         {
@@ -1909,7 +1944,7 @@ namespace GameCore
 
             IEnumerable<Link> link_empty_dots = from Dot de1 in ld
                                                 from Dot de2 in ld
-                                                where GameDots_Copy.Distance(de1, de2) >= 2
+                                                where Distance(de1, de2) >= 2
                                                 select new Link(de1, de2);
             //список точек, в которые потом делается ход для окружения
             List<Link> link = link_empty_dots.Distinct(new LinksComparer()).ToList();
@@ -2173,22 +2208,29 @@ namespace GameCore
 
         int BlockedPlayer = 0;
         int BlockedEnemy = 0;
-            //Perform three tasks in parallel on the source array
-        Parallel.Invoke(
-           () =>
-           {
-               bm = CheckMove(Player);
-               if (bm != null) moves.Add(bm);
-               BlockedPlayer = Goal.CountBlocked;
-           },  // close CheckMove({Player})
-           () =>
-           {
-               bm = CheckMove(Enemy);
-               if (bm != null) moves.Add(bm);
-               BlockedEnemy = Goal.CountBlocked;
-           } //close CheckMove({Enemy})
+            bm = CheckMove(Player);
+            if (bm != null) moves.Add(bm);
+            BlockedPlayer = Goal.CountBlocked;
+            bm = CheckMove(Enemy);
+            if (bm != null) moves.Add(bm);
+            BlockedEnemy = Goal.CountBlocked;
 
-            ); //close parallel.invoke
+
+            //Perform three tasks in parallel on the source array
+           // Parallel.Invoke(
+           //     () =>
+           //{
+           //   bm = CheckMove(Player);
+           //   if (bm != null) moves.Add(bm);
+           //     BlockedPlayer = Goal.CountBlocked;
+           //     },  // close CheckMove({Player})
+           //     () =>
+           //     {
+           //         bm = CheckMove(Enemy);
+           //         if (bm != null) moves.Add(bm);
+           //         BlockedEnemy = Goal.CountBlocked;
+           //     } //close CheckMove({Enemy})
+           // ); //close parallel.invoke
             if (bm != null)
             {
                 moves.Add(bm);
@@ -2200,79 +2242,79 @@ namespace GameCore
 
 
 
-            Parallel.Invoke(
-            #region CheckPattern_vilochka
-                        () =>
-                        {
-                            StartWatch($"CheckPattern_vilochka {Player} ...", progress);
-                            bm = CheckPattern_vilochka(Player);
-                            if (bm != null)
-                            {
-#if DEBUG
-                                {
-                                    DebugInfo.lstDBG2.Add(bm.ToString() + " ----> CheckPattern_vilochka ");
-                                }
-#endif
-                                bm.Tag = "CheckPattern_vilochka(" + Player + ")";
-                                bm.NumberPattern = 777; //777-ход в результате которого получается окружение -компьютер побеждает
-                                moves.Add(bm);
-                            }
-                            StopWatch($"CheckPattern_vilochka {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
-                        },  // close CheckPattern_vilochka {Player}
-            () =>
-            {
-                StartWatch($"CheckPattern_vilochka {Enemy} ...", progress);
-                bm = CheckPattern_vilochka(Enemy);
-                if (bm != null)
-                {
-                    bm.Tag = "CheckPattern_vilochka(" + Enemy + ")";
-                    bm.NumberPattern = 666; //777-ход в результате которого получается окружение -компьютер побеждает
-                                moves.Add(bm);
-                }
-                StopWatch($"CheckPattern_vilochka {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
-            }, //close CheckPattern_vilochka {Enemy}
-            #endregion
-            #region CheckPatternVilka1x1 проверяем ходы на два вперед на гарантированное окружение
-                                    () =>
-                                    {
-                                        StartWatch($"CheckPatternVilka1x1 {Player} ...", progress);
-                                        bm = CheckPatternVilka1x1(Player);
-                                        if (bm != null)
-                                        {
-                                            moves.Add(bm);
-                                        }
-                                        StopWatch($"CheckPatternVilka1x1 {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
-                                    },  // close CheckPatternVilka1x1(Player) Action
+//            Parallel.Invoke(
+//            #region CheckPattern_vilochka
+//                        () =>
+//                        {
+//                            StartWatch($"CheckPattern_vilochka {Player} ...", progress);
+//                            bm = CheckPattern_vilochka(Player);
+//                            if (bm != null)
+//                            {
+//#if DEBUG
+//                                {
+//                                    DebugInfo.lstDBG2.Add(bm.ToString() + " ----> CheckPattern_vilochka ");
+//                                }
+//#endif
+//                                bm.Tag = "CheckPattern_vilochka(" + Player + ")";
+//                                bm.NumberPattern = 777; //777-ход в результате которого получается окружение -компьютер побеждает
+//                                moves.Add(bm);
+//                            }
+//                            StopWatch($"CheckPattern_vilochka {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+//                        },  // close CheckPattern_vilochka {Player}
+//            () =>
+//            {
+//                StartWatch($"CheckPattern_vilochka {Enemy} ...", progress);
+//                bm = CheckPattern_vilochka(Enemy);
+//                if (bm != null)
+//                {
+//                    bm.Tag = "CheckPattern_vilochka(" + Enemy + ")";
+//                    bm.NumberPattern = 666; //777-ход в результате которого получается окружение -компьютер побеждает
+//                                moves.Add(bm);
+//                }
+//                StopWatch($"CheckPattern_vilochka {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+//            }, //close CheckPattern_vilochka {Enemy}
+//            #endregion
+//            #region CheckPatternVilka1x1 проверяем ходы на два вперед на гарантированное окружение
+//                                    () =>
+//                                    {
+//                                        StartWatch($"CheckPatternVilka1x1 {Player} ...", progress);
+//                                        bm = CheckPatternVilka1x1(Player);
+//                                        if (bm != null)
+//                                        {
+//                                            moves.Add(bm);
+//                                        }
+//                                        StopWatch($"CheckPatternVilka1x1 {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+//                                    },  // close CheckPatternVilka1x1(Player) Action
 
-            () =>
-                        {
-                            StartWatch($"CheckPatternVilka1x1 {Enemy} ...", progress);
-                            bm = CheckPatternVilka1x1(Enemy);
-                            if (bm != null)
-                            {
-                                moves.Add(bm);
-                            }
-                            StopWatch($"CheckPatternVilka1x1 {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+//            () =>
+//                        {
+//                            StartWatch($"CheckPatternVilka1x1 {Enemy} ...", progress);
+//                            bm = CheckPatternVilka1x1(Enemy);
+//                            if (bm != null)
+//                            {
+//                                moves.Add(bm);
+//                            }
+//                            StopWatch($"CheckPatternVilka1x1 {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
 
-                        }, //close CheckPatternVilka1x1(Enemy) Action
-            #endregion
-            #region Check vilka2x2
-                                    () =>
-                                    {
-                                        StartWatch($"CheckPatternVilka2x2 {Player} ...", progress);
-                                        bm = CheckPatternVilka2x2(Player);
-                                        if (bm != null) moves.Add(bm);
-                                        StopWatch($"CheckPatternVilka2x2 {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
-                                    },  // close Check vilka2x2 Player
-                        () =>
-                        {
-                            StartWatch($"CheckPatternVilka2x2 {Enemy} ...", progress);
-                            bm = CheckPatternVilka2x2(Enemy);
-                            if (bm != null) moves.Add(bm);
-                            StopWatch($"CheckPatternVilka2x2 {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
-                        } //close Check vilka2x2 Enemy
-                                    #endregion
-                        ); //close parallel.invoke
+//                        }, //close CheckPatternVilka1x1(Enemy) Action
+//            #endregion
+//            #region Check vilka2x2
+//                                    () =>
+//                                    {
+//                                        StartWatch($"CheckPatternVilka2x2 {Player} ...", progress);
+//                                        bm = CheckPatternVilka2x2(Player);
+//                                        if (bm != null) moves.Add(bm);
+//                                        StopWatch($"CheckPatternVilka2x2 {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+//                                    },  // close Check vilka2x2 Player
+//                        () =>
+//                        {
+//                            StartWatch($"CheckPatternVilka2x2 {Enemy} ...", progress);
+//                            bm = CheckPatternVilka2x2(Enemy);
+//                            if (bm != null) moves.Add(bm);
+//                            StopWatch($"CheckPatternVilka2x2 {Enemy} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+//                        } //close Check vilka2x2 Enemy
+//                                    #endregion
+//                        ); //close parallel.invoke
             if (moves.Count > 0) return moves;
             #endregion
 
@@ -2714,7 +2756,7 @@ namespace GameCore
 
         public int MovePlayer(Dot pl_move)
         {
-            if (MakeMove(pl_move, addForDraw: true) == -1)
+            if (MakeMove(pl_move, pl_move.Own, addForDraw: true) == -1)
             {
                 return -1;
             }

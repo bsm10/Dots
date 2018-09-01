@@ -135,6 +135,43 @@ namespace DotsGame
             }
 
         }
+        public class ChainToFixed : IEqualityComparer<Chain>
+        {
+            public ChainToFixed(Dot dot, Dot dotFixed, List<Chain> ld)
+            {
+                Dot = dot;
+                DotFixed = dotFixed;
+            }
+            public Dot Dot { get; set; }
+            public Dot DotFixed { get; set; }
+            public List<Chain> ListChain { get; set; }
+
+            //public override string ToString()
+            //{
+            //    return $"Dot1 {Dot1.X}:{Dot1.Y} - Dot2 {Dot2.X}:{Dot2.Y}";
+            //}
+
+            public bool Equals(Chain ch1, Chain ch2)
+            {
+                if (ch1.Dot1 == ch2.Dot1 && ch1.Dot2 == ch2.Dot2 ||
+                   ch1.Dot1 == ch2.Dot2 && ch2.Dot1 == ch1.Dot2) return true;
+                return false;
+            }
+
+            // If Equals() returns true for a pair of objects 
+            // then GetHashCode() must return the same value for these objects.
+
+            public int GetHashCode(Chain ch)
+            {
+                if (ReferenceEquals(ch, null)) return 0;
+                int hashDot1 = ch.Dot1.GetHashCode();
+                int hashDot2 = ch.Dot2.GetHashCode();
+                //int hashDot3 = ch.DotE.GetHashCode();
+                //Calculate the hash code for the product.
+                return hashDot1 * hashDot2;
+            }
+
+        }
 
     }
 }

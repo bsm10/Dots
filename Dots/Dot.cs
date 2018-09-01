@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GameCore;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -156,8 +157,13 @@ namespace DotsGame
             /// <summary>
             /// Точки по соседству с єтой точкой
             /// </summary>
-            public List<Dot> NeiborDots { get; set; } 
-            public bool Fixed { get; set; }
+            public List<Dot> NeiborDots { get; set; }
+            public bool Fixed
+            {
+                get => _fixed;
+                set => _fixed = value;
+
+            }
             public int CountBlockedDots => BlokingDots.Count;
             public bool Selected { get; set; }
             public StateOwn Own { get; set; }
@@ -277,6 +283,8 @@ namespace DotsGame
                 return (X == dot.X) & (Y == dot.Y);
             }
             private int _IndexRel;
+            private bool _fixed;
+
             // private Dot dot;
 
             public int IndexRelation
