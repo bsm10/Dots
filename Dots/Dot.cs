@@ -1,7 +1,7 @@
 ﻿using GameCore;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+//using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using static DotsGame.LinksAndDots.Dot;
@@ -114,7 +114,7 @@ namespace DotsGame
         {
             public int Compare(Dot d1, Dot d2)
             {
-                if (d1.X.CompareTo(d2.Own) != 0)
+                if (d1.X.CompareTo((int)d2.Own) != 0)
                 {
                     return d1.Own.CompareTo(d2.Own);
                 }
@@ -217,15 +217,15 @@ namespace DotsGame
                 this.Tag = Tag;
                 //IndexRelation = IndexDot;
             }
-            public Dot(Point p)
-            {
-                X = p.X;
-                Y = p.Y;
-                BlokingDots = new List<Dot>();
-                Own = StateOwn.Empty;
-                NumberPattern = 0;
-                Rating = Rating;
-            }
+            //public Dot(Point p)
+            //{
+            //    X = p.X;
+            //    Y = p.Y;
+            //    BlokingDots = new List<Dot>();
+            //    Own = StateOwn.Empty;
+            //    NumberPattern = 0;
+            //    Rating = Rating;
+            //}
             public Dot(Dot dot)
             {
                 X = dot.X;
@@ -325,5 +325,16 @@ namespace DotsGame
             //}
         }
 
+        public class Point
+        {
+            public Point(int x, int y)
+            {
+                X = x;
+                Y = y;
+            }
+
+            public int X { get; set; }
+            public int Y { get; set; }
+        }
     }
 }

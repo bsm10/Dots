@@ -1217,28 +1217,6 @@ this[dot.X, dot.Y -1]};
                                    select new Dot(move.X, move.Y, NumberPattern: 1, Rating: 5, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEq()));
 
-            // m +
-            // + - -
-            // pat = from Dot dot0 in get_non_blocked
-            // where dot0.Own == Enemy
-            // from Dot dot1 in get_non_blocked
-            // where dot1.Own == Enemy && Distance(dot1, dot0) == 1.0f
-            // from Dot dot2 in get_non_blocked
-            // where dot2.Own == Owner && Distance(dot2, dot1) == 2.0f
-            // from Dot dot3 in get_non_blocked
-            // where dot3.Own == Owner && Distance(dot3, dot2) == 2.2f
-            // from Dot dot4 in get_non_blocked
-            // where dot4.Own == StateOwn.Empty && Distance(dot4, dot3) == 2.0f
-            //&& Distance(dot4, dot0) == 1.4f
-            // from Dot move in get_non_blocked
-            // where move.Own == StateOwn.Empty
-            //&& Distance(dot0, move) == 1.0f
-            //&& Distance(dot1, move) == 1.4f
-            //&& Distance(dot2, move) == 1.4f
-            //&& Distance(dot3, move) == 1.0f
-            //&& Distance(dot4, move) == 1.0f
-            // select new Dot(move.X, move.Y, NumberPattern: 2, Rating: 3, Tag: $"CheckPattern({Owner})");
-            // ld.AddRange(pat.Distinct(new DotEq()));
             // m
             // + - +
             // -
@@ -1257,7 +1235,7 @@ this[dot.X, dot.Y -1]};
                   && Distance(dot1, move) == 1.0f
                   && Distance(dot2, move) == 1.4f
                   && Distance(dot3, move) == 1.4f
-                  select new Dot(move.X, move.Y, NumberPattern: 3, Rating: 5, Tag: $"CheckPattern({Owner})");
+                  select new Dot(move.X, move.Y, NumberPattern: 2, Rating: 5, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEq()));
             // +index relation
             // -
@@ -1303,7 +1281,7 @@ this[dot.X, dot.Y -1]};
                   && Distance(dot4, move) == 1.0f
                   && Distance(dot5, move) == 1.4f
                   && Distance(dot6, move) == 1.4f
-                  select new Dot(move.X, move.Y, NumberPattern: 4, Rating: 1, Tag: $"CheckPattern({ Owner})");
+                  select new Dot(move.X, move.Y, NumberPattern: 3, Rating: 1, Tag: $"CheckPattern({ Owner})");
             ld.AddRange(pat.Distinct(new DotEq()));
             //
             // - +
@@ -1315,29 +1293,28 @@ this[dot.X, dot.Y -1]};
                   from Dot dot2 in get_non_blocked
                   where dot2.Own == Owner && Distance(dot2, dot1) == 1.4f
                   from Dot dot3 in get_non_blocked
-                  where dot3.Own == StateOwn.Empty && Distance(dot3, dot2) == 2.2f
+                  where dot3.Own == StateOwn.Empty && Distance(dot3, dot2) == 2.0f
                   from Dot dot4 in get_non_blocked
-                  where dot4.Own == StateOwn.Empty && Distance(dot4, dot3) == 2.8f
+                  where dot4.Own == StateOwn.Empty && Distance(dot4, dot3) == 1.4f
                   from Dot dot5 in get_non_blocked
-                  where dot5.Own == StateOwn.Empty && Distance(dot5, dot4) == 2.2f
+                  where dot5.Own == StateOwn.Empty && Distance(dot5, dot4) == 1.0f
                   from Dot dot6 in get_non_blocked
-                  where dot6.Own == StateOwn.Empty && Distance(dot6, dot5) == 1.4f
-                  && Distance(dot6, dot0) == 1.0f
+                  where dot6.Own == StateOwn.Empty && Distance(dot6, dot5) == 2.8f
+&& Distance(dot6, dot0) == 2.0f
                   from Dot move in get_non_blocked
                   where move.Own == StateOwn.Empty
-                  && Distance(dot0, move) == 1.4f
-                  && Distance(dot1, move) == 1.0f
-                  && Distance(dot2, move) == 1.0f
-                  && Distance(dot3, move) == 2.0f
-                  && Distance(dot4, move) == 2.0f
-                  && Distance(dot5, move) == 2.2f
-                  && Distance(dot6, move) == 2.2f
-                  select new Dot(move.X, move.Y, NumberPattern: 5, Rating: 9, Tag: $"CheckPattern({ Owner})");
-            ld.AddRange(pat);
-            //***************************************************************************************************
-            // e - e-empty!
-            // - e + e m-move
-            // e m+ e -
+&& Distance(dot0, move) == 1.4f
+&& Distance(dot1, move) == 1.0f
+&& Distance(dot2, move) == 1.0f
+&& Distance(dot3, move) == 1.0f
+&& Distance(dot4, move) == 1.0f
+&& Distance(dot5, move) == 1.4f
+&& Distance(dot6, move) == 1.4f
+                  select new Dot(move.X, move.Y, NumberPattern: 4, Rating: 3, Tag: $"CheckPattern({Owner})");
+            ld.AddRange(pat.Distinct(new DotEq()));            //***************************************************************************************************
+            // e   -          e-empty!
+            // -   e   +       e m-move
+            // e  m+   e  -
             pat = from Dot dot0 in get_non_blocked
                   where dot0.Own == Enemy
                   from Dot dot1 in get_non_blocked
@@ -1365,76 +1342,12 @@ this[dot.X, dot.Y -1]};
                   && Distance(dot5, move) == 3.2f
                   && Distance(dot6, move) == 1.0f
                   && Distance(dot7, move) == 1.4f
-                  select new Dot(move.X, move.Y, NumberPattern: 3, Rating: 3, Tag: $"CheckPattern({Owner})");
+                  select new Dot(move.X, move.Y, NumberPattern: 5, Rating: 3, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEq()));
 
-            //*********************************************************************************************
-            // +
-            // m+ -
-            // +
-            pat = from Dot dot0 in get_non_blocked
-                  where dot0.Own == Enemy
-                  from Dot dot1 in get_non_blocked
-                  where dot1.Own == Enemy && Distance(dot1, dot0) == 2.0f
-                  from Dot dot2 in get_non_blocked
-                  where dot2.Own == Owner && Distance(dot2, dot1) == 1.0f
-                  && Distance(dot2, dot0) == 1.0f
-                  from Dot move in get_non_blocked
-                  where move.Own == StateOwn.Empty
-                  && Distance(dot0, move) == 1.4f
-                  && Distance(dot1, move) == 1.4f
-                  && Distance(dot2, move) == 1.0f
-                  select new Dot(move.X, move.Y, NumberPattern: 9, Rating: 2, Tag: $"CheckPattern({Owner})");
-            ld.AddRange(pat.Distinct(new DotEq()));
-            //*******************************************************************************************
-            // -
-            // - + -m
-            //
-            pat = from Dot dot0 in get_non_blocked
-                  where dot0.Own == Enemy
-                  from Dot dot1 in get_non_blocked
-                  where dot1.Own == Enemy && Distance(dot1, dot0) == 1.4f
-                  from Dot dot2 in get_non_blocked
-                  where dot2.Own == Owner && Distance(dot2, dot1) == 1.0f
-                  from Dot dot3 in get_non_blocked
-                  where dot3.Own == StateOwn.Empty && Distance(dot3, dot2) == 1.0f
-                  && Distance(dot3, dot0) == 2.0f
-                  from Dot move in get_non_blocked
-                  where move.Own == StateOwn.Empty
-                  && Distance(dot0, move) == 1.4f
-                  && Distance(dot1, move) == 2.0f
-                  && Distance(dot2, move) == 1.0f
-                  && Distance(dot3, move) == 1.4f
-                  select new Dot(move.X, move.Y, NumberPattern: 3, Rating: 3, Tag: $"CheckPattern({Owner})");
-            ld.AddRange(pat.Distinct(new DotEq()));
-
-            //*****************************************************************************************
-            // - +
-            // - +
-            // m+ -
-            pat = from Dot dot0 in get_non_blocked
-                  where dot0.Own == Enemy
-                  from Dot dot1 in get_non_blocked
-                  where dot1.Own == Enemy && Distance(dot1, dot0) == 2.2f
-                  from Dot dot2 in get_non_blocked
-                  where dot2.Own == Owner && Distance(dot2, dot1) == 1.4f
-                  from Dot dot3 in get_non_blocked
-                  where dot3.Own == Owner && Distance(dot3, dot2) == 1.0f
-                  from Dot dot4 in get_non_blocked
-                  where dot4.Own == Owner && Distance(dot4, dot3) == 2.2f
-                  && Distance(dot4, dot0) == 1.0f
-                  from Dot move in get_non_blocked
-                  where move.Own == StateOwn.Empty
-                  && Distance(dot0, move) == 1.4f
-                  && Distance(dot1, move) == 1.0f
-                  && Distance(dot2, move) == 1.0f
-                  && Distance(dot3, move) == 1.4f
-                  && Distance(dot4, move) == 1.0f
-                  select new Dot(move.X, move.Y, NumberPattern: 11, Rating: 3, Tag: $"CheckPattern({Owner})");
-            ld.AddRange(pat.Distinct(new DotEq()));
             //**********************************************************************
-            // - m+
-            // + -
+            // -   m+
+            // +   -
             //
             pat = from Dot dot0 in get_non_blocked
                   where dot0.Own == Enemy
@@ -1448,7 +1361,7 @@ this[dot.X, dot.Y -1]};
                   && Distance(dot0, move) == 1.0f
                   && Distance(dot1, move) == 1.4f
                   && Distance(dot2, move) == 1.0f
-                  select new Dot(move.X, move.Y, NumberPattern: 3, Rating: 3, Tag: $"CheckPattern({Owner})");
+                  select new Dot(move.X, move.Y, NumberPattern: 7, Rating: 3, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEq()));
             //******************************************************************
             // +m
@@ -1490,7 +1403,31 @@ this[dot.X, dot.Y -1]};
                   && Distance(dot8, move) == 1.4f
                   && Distance(dot9, move) == 1.0f
                   && Distance(dot10, move) == 1.4f
-                  select new Dot(move.X, move.Y, NumberPattern: 3, Rating: 3, Tag: $"CheckPattern({Owner})");
+                  select new Dot(move.X, move.Y, NumberPattern: 8, Rating: 3, Tag: $"CheckPattern({Owner})");
+            ld.AddRange(pat.Distinct(new DotEq()));
+            //*******************************************
+            // e  m+   e
+            // +   -   +   
+            //
+            pat = from Dot dot0 in get_non_blocked
+                  where dot0.Own == Enemy
+                  from Dot dot1 in get_non_blocked
+                  where dot1.Own == Enemy && Distance(dot1, dot0) == 2.0f
+                  from Dot dot2 in get_non_blocked
+                  where dot2.Own == Owner && Distance(dot2, dot1) == 1.0f
+                  from Dot dot3 in get_non_blocked
+                  where dot3.Own == StateOwn.Empty && Distance(dot3, dot2) == 1.4f
+                  from Dot dot4 in get_non_blocked
+                  where dot4.Own == StateOwn.Empty && Distance(dot4, dot3) == 2.0f
+&& Distance(dot4, dot0) == 1.0f
+                  from Dot move in get_non_blocked
+                  where move.Own == StateOwn.Empty
+&& Distance(dot0, move) == 1.4f
+&& Distance(dot1, move) == 1.4f
+&& Distance(dot2, move) == 1.0f
+&& Distance(dot3, move) == 1.0f
+&& Distance(dot4, move) == 1.0f
+                  select new Dot(move.X, move.Y, NumberPattern: 9, Rating: 3, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEq()));
 
             return ld;
@@ -2271,69 +2208,69 @@ this[dot.X, dot.Y -1]};
                 #endregion
             }
             #endregion
-            bm = CheckPatternVilka1x1(Player);
-            if (bm != null)
-            {
-                moves.Add(bm);
-            }
-            bm = CheckPatternVilka1x1(Enemy);
-            if (bm != null)
-            {
-                moves.Add(bm);
-            }
+            //bm = CheckPatternVilka1x1(Player);
+            //if (bm != null)
+            //{
+            //    moves.Add(bm);
+            //}
+            //bm = CheckPatternVilka1x1(Enemy);
+            //if (bm != null)
+            //{
+            //    moves.Add(bm);
+            //}
 
             #region CheckPattern_vilochka, CheckPatternVilka1x1->проверяем ходы на два вперед на гарантированное окружение
-//            StartWatch($"CheckPattern_vilochka, CheckPatternVilka1x1... ", progress);
-//            Parallel.Invoke(
-//            () =>
-//            {
-//                bm = CheckPattern_vilochka(Player);
-//                if (bm != null)
-//                {
-//#if DEBUG
-//        {
-//            DebugInfo.lstDBG2.Add(bm.ToString() + " ----> CheckPattern_vilochka ");
-//        }
-//#endif
-//        bm.Tag = "CheckPattern_vilochka(" + Player + ")";
-//                    bm.NumberPattern = 777; //777-ход в результате которого получается окружение -компьютер побеждает
-//        moves.Add(bm);
-//                }
-//            }, //CheckPattern_vilochka {Player}
-//            () =>
-//            {
-//                bm = CheckPattern_vilochka(Enemy);
-//                if (bm != null)
-//                {
-//                    bm.Tag = "CheckPattern_vilochka(" + Enemy + ")";
-//                    bm.NumberPattern = 666; //777-ход в результате которого получается окружение -компьютер побеждает
-//        moves.Add(bm);
-//                }
+            StartWatch($"CheckPattern_vilochka, CheckPatternVilka1x1... ", progress);
+            Parallel.Invoke(
+            () =>
+            {
+                bm = CheckPattern_vilochka(Player);
+                if (bm != null)
+                {
+#if DEBUG
+                    {
+                        DebugInfo.lstDBG2.Add(bm.ToString() + " ----> CheckPattern_vilochka ");
+                    }
+#endif
+                    bm.Tag = "CheckPattern_vilochka(" + Player + ")";
+                    bm.NumberPattern = 777; //777-ход в результате которого получается окружение -компьютер побеждает
+                    moves.Add(bm);
+                }
+            }, //CheckPattern_vilochka {Player}
+            () =>
+            {
+                bm = CheckPattern_vilochka(Enemy);
+                if (bm != null)
+                {
+                    bm.Tag = "CheckPattern_vilochka(" + Enemy + ")";
+                    bm.NumberPattern = 666; //777-ход в результате которого получается окружение -компьютер побеждает
+                    moves.Add(bm);
+                }
 
-//            }, //CheckPattern_vilochka {Enemy}
-//            () =>
-//            {
-//                bm = CheckPatternVilka1x1(Player);
-//                if (bm != null)
-//                {
-//                    moves.Add(bm);
-//                }
-//            }, //CheckPatternVilka1x1(Player)
-//            () =>
-//            {
-//                bm = CheckPatternVilka1x1(Enemy);
-//                if (bm != null)
-//                {
-//                    moves.Add(bm);
-//                }
-//            } //CheckPatternVilka1x1(Enemy)
+            }, //CheckPattern_vilochka {Enemy}
+            () =>
+            {
+                bm = CheckPatternVilka1x1(Player);
+                if (bm != null)
+                {
+                    moves.Add(bm);
+                }
+            }, //CheckPatternVilka1x1(Player)
+            () =>
+            {
+                bm = CheckPatternVilka1x1(Enemy);
+                if (bm != null)
+                {
+                    moves.Add(bm);
+                }
+            } //CheckPatternVilka1x1(Enemy)
 
-//            ); //close parallel.invoke
-//            StopWatch($"CheckPattern_vilochka, CheckPatternVilka1x1 - {sW2.Elapsed.Milliseconds.ToString()}", progress);
-//            if (moves.Count > 0)
-//            {
-//                return moves;
-//            }
+            ); //close parallel.invoke
+            StopWatch($"CheckPattern_vilochka, CheckPatternVilka1x1 - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+            if (moves.Count > 0)
+            {
+                return moves;
+            }
             #endregion
             #region Check vilka2x2
             StartWatch($"CheckPatternVilka2x2 {Player} ...", progress);
