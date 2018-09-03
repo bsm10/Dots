@@ -1217,24 +1217,24 @@ this[dot.X, dot.Y -1]};
             // 1+  2+
             IEnumerable<Dot> pat =
         from Dot move in get_non_blocked where move.Own == StateOwn.Empty
-        from Dot dotComputer0 in NeighborDots(move, 1)
+        from Dot dotComputer0 in NeighborDots(move)
         where dotComputer0.Own == Owner && Distance(dotComputer0, move) == 1.4f
-        from Dot dotComputer1 in NeighborDots(move, 1)
+        from Dot dotComputer1 in NeighborDots(move)
         where dotComputer1.Own == Owner && Distance(dotComputer1, move) == 1f
         && Distance(dotComputer0, dotComputer1) == 1f
-        from Dot dotHuman2 in NeighborDots(move, 1)
+        from Dot dotHuman2 in NeighborDots(move)
         where dotHuman2.Own == Enemy && Distance(dotHuman2, move) == 1f
         && Distance(dotComputer1, dotHuman2) == 1.4f
-        from Dot dotHuman3 in NeighborDots(move, 1)
+        from Dot dotHuman3 in NeighborDots(move)
         where dotHuman3.Own == Enemy && Distance(dotHuman3, move) == 1f
         && Distance(dotHuman2, dotHuman3) == 2f
-        from Dot dotEmpty4 in NeighborDots(move, 1)
+        from Dot dotEmpty4 in NeighborDots(move)
         where dotEmpty4.Own == StateOwn.Empty && Distance(dotEmpty4, move) == 1.4f
         && Distance(dotHuman3, dotEmpty4) == 2.2f
-        from Dot dotEmpty5 in NeighborDots(move, 1)
+        from Dot dotEmpty5 in NeighborDots(move)
         where dotEmpty5.Own == StateOwn.Empty && Distance(dotEmpty5, move) == 1f
         && Distance(dotEmpty4, dotEmpty5) == 1f
-        from Dot dotEmpty6 in NeighborDots(move, 1)
+        from Dot dotEmpty6 in NeighborDots(move)
         where dotEmpty6.Own == StateOwn.Empty && Distance(dotEmpty6, move) == 1.4f
         && Distance(dotEmpty5, dotEmpty6) == 1f
         && Distance(dotEmpty6, dotComputer0) == 2.8f
@@ -1246,18 +1246,18 @@ this[dot.X, dot.Y -1]};
             // -  +m
             pat = from Dot move in get_non_blocked
                   where move.Own == StateOwn.Empty
-                  from Dot dotComputer0 in NeighborDots(move, 1)
+                  from Dot dotComputer0 in NeighborDots(move)
                   where dotComputer0.Own == Owner && Distance(dotComputer0, move) == 1.4f
-                  from Dot dotHuman1 in NeighborDots(move, 1)
+                  from Dot dotHuman1 in NeighborDots(move)
                   where dotHuman1.Own == Enemy && Distance(dotHuman1, move) == 1f
                  && Distance(dotComputer0, dotHuman1) == 1f
-                  from Dot dotHuman2 in NeighborDots(move, 1)
+                  from Dot dotHuman2 in NeighborDots(move)
                   where dotHuman2.Own == Enemy && Distance(dotHuman2, move) == 1f
                  && Distance(dotHuman1, dotHuman2) == 1.4f
-                  from Dot dotEmpty3 in NeighborDots(move, 1)
+                  from Dot dotEmpty3 in NeighborDots(move)
                   where dotEmpty3.Own == StateOwn.Empty && Distance(dotEmpty3, move) == 1f
                  && Distance(dotHuman2, dotEmpty3) == 2f
-                  from Dot dotEmpty4 in NeighborDots(move, 1)
+                  from Dot dotEmpty4 in NeighborDots(move)
                   where dotEmpty4.Own == StateOwn.Empty && Distance(dotEmpty4, move) == 1f
                  && Distance(dotEmpty3, dotEmpty4) == 1.4f
                  && Distance(dotEmpty4, dotComputer0) == 2.2f
@@ -1297,15 +1297,15 @@ this[dot.X, dot.Y -1]};
             //  +  +  -
             pat = from Dot move in get_non_blocked
                   where move.Own == StateOwn.Empty
-                  from Dot dotComputer0 in NeighborDots(move, 1)
+                  from Dot dotComputer0 in NeighborDots(move)
                   where dotComputer0.Own == Owner && Distance(dotComputer0, move) == 1f
-                  from Dot dotHuman1 in NeighborDots(move, 1)
+                  from Dot dotHuman1 in NeighborDots(move)
                   where dotHuman1.Own == Enemy && Distance(dotHuman1, move) == 1.4f
                  && Distance(dotComputer0, dotHuman1) == 1f
-                  from Dot dotHuman2 in NeighborDots(move, 1)
+                  from Dot dotHuman2 in NeighborDots(move)
                   where dotHuman2.Own == Enemy && Distance(dotHuman2, move) == 1f
                  && Distance(dotHuman1, dotHuman2) == 2.2f
-                  from Dot dotEmpty3 in NeighborDots(move, 1)
+                  from Dot dotEmpty3 in NeighborDots(move)
                   where dotEmpty3.Own == StateOwn.Empty && Distance(dotEmpty3, move) == 1f
                  && Distance(dotHuman2, dotEmpty3) == 2f
                  && Distance(dotEmpty3, dotComputer0) == 1.4f
