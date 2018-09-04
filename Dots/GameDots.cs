@@ -136,7 +136,6 @@ namespace GameCore
                             orderby (random.Next())
                             select d;
                     return q.First();
-
                 }
                 else
                 {
@@ -804,6 +803,8 @@ namespace GameCore
             }
             if (full)//если полная отмена
             {
+                ListMoves.Clear();
+                ListMoves.AddRange(StackMoves);
                 LinkDots();
             }
         }
@@ -2512,7 +2513,7 @@ this[dot.X, dot.Y -1]};
             {
                 int i = 0;
                 #region Cycle
-                foreach (Dot move in lst_best_move.Where(dt => dt.Rating < 2))
+                foreach (Dot move in lst_best_move)
                 {
                     i++;
                     if (progress != null) progress.Report("Wait..." + i * 100 / lst_best_move.Count + "%");
@@ -2672,9 +2673,10 @@ this[dot.X, dot.Y -1]};
 
         public bool IsGameOver => GetDots(StateOwn.Empty).Count == 0;
 
-        public Task<int> MovePlayerAsync_old(StateOwn Player, Dot pl_move = null)
+        public Task<int> MovePlayerAsync(StateOwn Player, IProgress<string> _progress = null, Dot pl_move = null)
         {
             TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
+            progress = _progress;
             Task.Factory.StartNew(() =>
             {
                 try
@@ -2685,30 +2687,46 @@ this[dot.X, dot.Y -1]};
                 {
                     tcs.SetException(ex);
                 }
-            });
-            return tcs.Task;
-        }
-        //public Progress<string> Progress { get; set; } = new Progress<string>(s => DebugInfo.StringMSG = s);
-
-        public Task<int> MovePlayerAsync(StateOwn Player, IProgress<string> _progress = null, Dot pl_move = null)
-        {
-            TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
-            progress = _progress;
-            Task.Factory.StartNew(async () =>
-            {
-                try
-                {
-                    tcs.SetResult(await Task.Factory.StartNew(() => MovePlayer(Player, pl_move),
-        TaskCreationOptions.LongRunning));
-                }
-                catch (Exception ex)
-                {
-                    tcs.SetException(ex);
-                }
-            });
+            }, TaskCreationOptions.LongRunning);
             return tcs.Task;
         }
 
+        //public Task<int> MovePlayerAsync2(StateOwn Player, IProgress<string> _progress = null, Dot pl_move = null)
+        //{
+        //    TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
+        //    progress = _progress;
+        //    Task.Factory.StartNew(async () =>
+        //    {
+        //        try
+        //        {
+        //            tcs.SetResult(await Task.Factory.StartNew(() => MovePlayer(Player, pl_move),
+        //TaskCreationOptions.LongRunning));
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            tcs.SetException(ex);
+        //        }
+        //    });
+        //    return tcs.Task;
+        //}
+        //public Task<int> MovePlayerAsync1(StateOwn Player, IProgress<string> _progress = null, Dot pl_move = null)
+        //{
+        //    TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
+        //    progress = _progress;
+        //    Task.Factory.StartNew(async () =>
+        //    {
+        //        try
+        //        {
+        //            tcs.SetResult(await Task.Factory.StartNew(() => MovePlayer(Player, pl_move),
+        //TaskCreationOptions.LongRunning));
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            tcs.SetException(ex);
+        //        }
+        //    });
+        //    return tcs.Task;
+        //}
 
 
         /// <summary>
@@ -2731,12 +2749,12 @@ this[dot.X, dot.Y -1]};
             }
             if (MakeMove(pl_move, Player, addForDraw: true) == -1)
             {
-                return -1;
+                return -1;//Error
             }
 
             if (IsGameOver)
             {
-                return 1;
+                return 1;//GameOver
             }
             return 0;
         }
