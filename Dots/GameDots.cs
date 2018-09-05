@@ -1088,9 +1088,6 @@ this[dot.X, dot.Y -1]};
         /// <returns>Возвращает ход(точку) который завершает окружение</returns>
         private Dot CheckMove(StateOwn Owner)
         {
-#if DEBUG
-            StartWatch($"CheckMove({Owner})...", progress);
-#endif
             GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
             List<Dot> happy_dots = new List<Dot>();
             IEnumerable<Chain3Dots> qry = SelectDotsCheckMove(Owner, GameDots_Copy);
@@ -1122,20 +1119,17 @@ this[dot.X, dot.Y -1]};
                 result.Tag = $"CheckMove({Owner})";
                 result.NumberPattern = Owner == StateOwn.Computer ? 777 : 666; //777-ход в результате которого получается окружение - компьютер побеждает
             }
-#if DEBUG
-            StopWatch($"CheckMove {Owner} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
-#endif
             return result;
         }
         private IEnumerable<Chain3Dots> SelectDotsCheckMove(StateOwn Owner, GameDots GameDots_Copy)
         {
-            return from Dot d1 in GameDots_Copy.GetDots(Owner)
-                   from Dot d2 in GameDots_Copy.GetDots(Owner)
-                   where d2.IndexRelation == d1.IndexRelation
-                   && Distance(d1, d2) >= 2 && Distance(d1, d2) < 3
+            List<Dot> dots = GameDots_Copy.GetDots(Owner);
+            IEnumerable<Chain3Dots> qry = from Dot d1 in dots
+                                          from Dot d2 in dots
+                                          where d2.IndexRelation == d1.IndexRelation
+                                          && Distance(d1, d2) >= 2 && Distance(d1, d2) < 3
                    from Dot d3 in GameDots_Copy.GetDots(StateOwn.Empty)
-                   where
-                   GameDots_Copy.CommonDots(d1, d2).Contains(d3)
+                   where GameDots_Copy.CommonDots(d1, d2).Contains(d3)
                    && Distance(d1, d3) >= 1 && Distance(d1, d3) < 2
                    && Distance(d2, d3) >= 1 && Distance(d2, d3) < 2
                    && GameDots_Copy.NeighborDotsSNWE(d3).Where(dt => dt.Own == Owner).Count() <= 2
@@ -1144,8 +1138,25 @@ this[dot.X, dot.Y -1]};
                    && Distance(d1, d3) == 1 && Distance(d2, d3) == 2
                    && GameDots_Copy.NeighborDots(d3).Where(dt => dt.Own == Owner).Count() == 2
 
-
                    select new Chain3Dots(d1, d3, d2);
+
+            //return from Dot d1 in GameDots_Copy.GetDots(Owner)
+            //       from Dot d2 in GameDots_Copy.GetDots(Owner)
+            //       where d2.IndexRelation == d1.IndexRelation
+            //       && Distance(d1, d2) >= 2 && Distance(d1, d2) < 3
+            //       from Dot d3 in GameDots_Copy.GetDots(StateOwn.Empty)
+            //       where
+            //       GameDots_Copy.CommonDots(d1, d2).Contains(d3)
+            //       && Distance(d1, d3) >= 1 && Distance(d1, d3) < 2
+            //       && Distance(d2, d3) >= 1 && Distance(d2, d3) < 2
+            //       && GameDots_Copy.NeighborDotsSNWE(d3).Where(dt => dt.Own == Owner).Count() <= 2
+            //       ||
+            //       GameDots_Copy.CommonDots(d1, d2).Contains(d3)
+            //       && Distance(d1, d3) == 1 && Distance(d2, d3) == 2
+            //       && GameDots_Copy.NeighborDots(d3).Where(dt => dt.Own == Owner).Count() == 2
+            //       select new Chain3Dots(d1, d3, d2);
+
+            return qry;
         }
         private Dot CheckPatternVilkaNextMove(StateOwn Owner)
         //Доработать!!! неправильно работает
@@ -1924,11 +1935,10 @@ this[dot.X, dot.Y -1]};
             List<Dot> get_non_blocked = GameDots_Copy.GetDots(StateOwn.Empty);
             List<Dot> GetOwnerDots = GameDots_Copy.GetDots(Owner);
 
-            qry = from Dot dotOwner1 in GameDots_Copy.GetDots()
-                  where dotOwner1.Own == Owner
-                  from Dot dotOwner2 in GameDots_Copy.GetDots()
-                  where dotOwner2.Own == Owner && Distance(dotOwner2, dotOwner1) <= 3.4f
-                                               && Distance(dotOwner2, dotOwner1) >= 3f
+            qry = from Dot dotOwner1 in GetOwnerDots
+                  from Dot dotOwner2 in GetOwnerDots
+                  where Distance(dotOwner2, dotOwner1) <= 3.4f
+                       && Distance(dotOwner2, dotOwner1) >= 3f
                   from Dot dot2 in get_non_blocked
                   where Distance(dot2, dotOwner1) == 1.0f
                   from Dot dot3 in get_non_blocked
@@ -2124,9 +2134,6 @@ this[dot.X, dot.Y -1]};
         /// <returns></returns>
         private List<Dot> BestMove(StateOwn Player, IProgress<string> progress)
         {
-            //DebugInfo.lstDBG1.Clear();
-            //DebugInfo.lstDBG2.Clear();
-            //string strDebug = string.Empty;
             List<Dot> moves = new List<Dot>();
             Dot bm = null;
             StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
@@ -2135,28 +2142,28 @@ this[dot.X, dot.Y -1]};
 
             int BlockedPlayer = 0;
             int BlockedEnemy = 0;
-            bm = CheckMove(Player);
-            if (bm != null) moves.Add(bm);
-            BlockedPlayer = Goal.CountBlocked;
-            bm = CheckMove(Enemy);
-            if (bm != null) moves.Add(bm);
-            BlockedEnemy = Goal.CountBlocked;
+            //bm = CheckMove(Player);
+            //if (bm != null) moves.Add(bm);
+            //BlockedPlayer = Goal.CountBlocked;
+            //bm = CheckMove(Enemy);
+            //if (bm != null) moves.Add(bm);
+            //BlockedEnemy = Goal.CountBlocked;
 
             #region CheckMove
             StartWatch($"CheckMove... ", progress);
             Parallel.Invoke(
-            //() =>
-            //{
-            //    bm = CheckMove(Player);
-            //    if (bm != null) moves.Add(bm);
-            //    BlockedPlayer = Goal.CountBlocked;
-            //}, // close CheckMove({Player})
-            //() =>
-            //{
-            //    bm = CheckMove(Enemy);
-            //    if (bm != null) moves.Add(bm);
-            //    BlockedEnemy = Goal.CountBlocked;
-            //} //close CheckMove({Enemy})
+            () =>
+            {
+                bm = CheckMove(Player);
+                if (bm != null) moves.Add(bm);
+                BlockedPlayer = Goal.CountBlocked;
+            }, // close CheckMove({Player})
+            () =>
+            {
+                bm = CheckMove(Enemy);
+                if (bm != null) moves.Add(bm);
+                BlockedEnemy = Goal.CountBlocked;
+            } //close CheckMove({Enemy})
             ); //close parallel.invoke
             StopWatch($"CheckMove - {sW2.Elapsed.Milliseconds.ToString()}", progress);
             if (bm != null)
@@ -2377,8 +2384,6 @@ this[dot.X, dot.Y -1]};
             if (recursion_depth == 1) counter_moves = 1;
             recursion_depth++;
             counter_moves++;
-
-
             if (recursion_depth > MAX_RECURSION) return StateOwn.Empty;
 
             lst_best_move = BestMove(Player, progress);
