@@ -1223,121 +1223,55 @@ this[dot.X, dot.Y -1]};
             StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
             List<Dot> ld = new List<Dot>();
             IEnumerable<Dot> get_non_blocked = from Dot d in this where d.Blocked == false select d;
+            IEnumerable<Dot> pat;
             //получить коллекцию незаблокированных точек
             //
             // 1-  m+  2- from Dot dotOwner1 in GetDots(StateOwn.Empty)
             // 1+  2+
-            IEnumerable<Dot> pat =
-        from Dot move in this where !move.Blocked && move.Own == StateOwn.Empty
-        let neighbordots= NeighborDots(move)
-        from Dot dotComputer0 in neighbordots
-        where dotComputer0.Own == Owner && Distance(dotComputer0, move) == 1.4f
-        from Dot dotComputer1 in neighbordots
-        where dotComputer1.Own == Owner && Distance(dotComputer1, move) == 1f
-        && Distance(dotComputer0, dotComputer1) == 1f
-        from Dot dotHuman2 in neighbordots
-        where dotHuman2.Own == Enemy && Distance(dotHuman2, move) == 1f
-        && Distance(dotComputer1, dotHuman2) == 1.4f
-        from Dot dotHuman3 in neighbordots
-        where dotHuman3.Own == Enemy && Distance(dotHuman3, move) == 1f
-        && Distance(dotHuman2, dotHuman3) == 2f
-        from Dot dotEmpty4 in neighbordots
-        where dotEmpty4.Own == StateOwn.Empty && Distance(dotEmpty4, move) == 1.4f
-        && Distance(dotHuman3, dotEmpty4) == 2.2f
-        from Dot dotEmpty5 in neighbordots
-        where dotEmpty5.Own == StateOwn.Empty && Distance(dotEmpty5, move) == 1f
-        && Distance(dotEmpty4, dotEmpty5) == 1f
-        from Dot dotEmpty6 in neighbordots
-        where dotEmpty6.Own == StateOwn.Empty && Distance(dotEmpty6, move) == 1.4f
-        && Distance(dotEmpty5, dotEmpty6) == 1f
-        && Distance(dotEmpty6, dotComputer0) == 2.8f
-        select new Dot(move.X, move.Y, NumberPattern: 1, Rating: 4, Tag: $"CheckPattern({Owner})");
-
-            ld.AddRange(pat.Distinct(new DotEq()));
+            //pat = from Dot move in get_non_blocked where move.Own == StateOwn.Empty
+            //      let dotsOwner = NeighborDots(move).Where(dt => dt.Own == Owner).ToList()
+            //      let dotsEnemy = NeighborDotsSNWE(move).Where(dt => dt.Own == Enemy).ToList()
+            //      where dotsEnemy.Count == 2 && Distance(dotsEnemy[0], dotsEnemy[1]) >= 2f
+            //            && dotsOwner.Count == 2 && Distance(dotsOwner[0], dotsOwner[1]) == 1f
+            //      select new Dot(move.X, move.Y, NumberPattern: 1, Rating: 3, Tag: $"CheckPattern({Owner})");
+            //      ld.AddRange(pat.Distinct(new DotEq()));
 
             //********************************************************************
             // +  -
             // -  +m
             pat = from Dot move in get_non_blocked
                   where move.Own == StateOwn.Empty
-                  from Dot dotComputer0 in NeighborDots(move)
-                  where dotComputer0.Own == Owner && Distance(dotComputer0, move) == 1.4f
-                  from Dot dotHuman1 in NeighborDots(move)
-                  where dotHuman1.Own == Enemy && Distance(dotHuman1, move) == 1f
-                 && Distance(dotComputer0, dotHuman1) == 1f
-                  from Dot dotHuman2 in NeighborDots(move)
-                  where dotHuman2.Own == Enemy && Distance(dotHuman2, move) == 1f
-                 && Distance(dotHuman1, dotHuman2) == 1.4f
-                  from Dot dotEmpty3 in NeighborDots(move)
-                  where dotEmpty3.Own == StateOwn.Empty && Distance(dotEmpty3, move) == 1f
-                 && Distance(dotHuman2, dotEmpty3) == 2f
-                  from Dot dotEmpty4 in NeighborDots(move)
-                  where dotEmpty4.Own == StateOwn.Empty && Distance(dotEmpty4, move) == 1f
-                 && Distance(dotEmpty3, dotEmpty4) == 1.4f
-                 && Distance(dotEmpty4, dotComputer0) == 2.2f
-                  select new Dot(move.X, move.Y, NumberPattern: 2, Rating: 5, Tag: $"CheckPattern({Owner})");
-            ld.AddRange(pat.Distinct(new DotEq()));
-            //*****************************************************************************************
-            // +  -
-            //    -
-            // +m
-            pat = from Dot move in get_non_blocked
-                  where move.Own == StateOwn.Empty
-                  from Dot dotComputer0 in NeighborDots(move, 2)
-                  where dotComputer0.Own == Owner && Distance(dotComputer0, move) == 2f
-                  from Dot dotHuman1 in NeighborDots(move, 2)
-                  where dotHuman1.Own == Enemy && Distance(dotHuman1, move) == 2.2f
-                 && Distance(dotComputer0, dotHuman1) == 1f
-                  from Dot dotHuman2 in NeighborDots(move, 2)
-                  where dotHuman2.Own == Enemy && Distance(dotHuman2, move) == 1.4f
-                 && Distance(dotHuman1, dotHuman2) == 1f
-                  from Dot dotEmpty3 in NeighborDots(move, 2)
-                  where dotEmpty3.Own == StateOwn.Empty && Distance(dotEmpty3, move) == 1f
-                 && Distance(dotHuman2, dotEmpty3) == 1f
-                  from Dot dotEmpty4 in NeighborDots(move, 2)
-                  where dotEmpty4.Own == StateOwn.Empty && Distance(dotEmpty4, move) == 1f
-                 && Distance(dotEmpty3, dotEmpty4) == 1.4f
-                  from Dot dotEmpty5 in NeighborDots(move, 2)
-                  where dotEmpty5.Own == StateOwn.Empty && Distance(dotEmpty5, move) == 1f
-                 && Distance(dotEmpty4, dotEmpty5) == 2f
-                  from Dot dotEmpty6 in NeighborDots(move, 2)
-                  where dotEmpty6.Own == StateOwn.Empty && Distance(dotEmpty6, move) == 1f
-                 && Distance(dotEmpty5, dotEmpty6) == 1.4f
-                 && Distance(dotEmpty6, dotComputer0) == 3f
-                  select new Dot(move.X, move.Y, NumberPattern: 3, Rating: 5, Tag: $"CheckPattern({Owner})");
-            ld.AddRange(pat.Distinct(new DotEq()));
-            //***************************************************************************************************
-            //  -  +m
-            //  +  +  -
-            pat = from Dot move in get_non_blocked
-                  where move.Own == StateOwn.Empty
-                  from Dot dotComputer0 in NeighborDots(move)
-                  where dotComputer0.Own == Owner && Distance(dotComputer0, move) == 1f
-                  from Dot dotHuman1 in NeighborDots(move)
-                  where dotHuman1.Own == Enemy && Distance(dotHuman1, move) == 1.4f
-                 && Distance(dotComputer0, dotHuman1) == 1f
-                  from Dot dotHuman2 in NeighborDots(move)
-                  where dotHuman2.Own == Enemy && Distance(dotHuman2, move) == 1f
-                 && Distance(dotHuman1, dotHuman2) == 2.2f
-                  from Dot dotEmpty3 in NeighborDots(move)
-                  where dotEmpty3.Own == StateOwn.Empty && Distance(dotEmpty3, move) == 1f
-                 && Distance(dotHuman2, dotEmpty3) == 2f
-                 && Distance(dotEmpty3, dotComputer0) == 1.4f
-                  select new Dot(move.X, move.Y, NumberPattern: 4, Rating: 3, Tag: $"CheckPattern({Owner})");
+                  let dotsOwner = NeighborDots(move).Where(dt => dt.Own == Owner).ToList()
+                  let dotsEnemy = NeighborDotsSNWE(move).Where(dt => dt.Own == Enemy).ToList()
+                  where dotsEnemy.Count == 2 && dotsOwner.Count == 1
+                  && Distance(dotsEnemy[0], dotsEnemy[1]) == 1.4f 
+                  && Distance(dotsOwner[0], dotsEnemy[0]) == 1f
+                  && Distance(dotsOwner[0], dotsEnemy[1]) == 1f
+                  select new Dot(move.X, move.Y, NumberPattern: 2, Rating: 4, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEq()));
             //***************************************************************************************************
             //    +m
-            // +     + паттерн на соединение двух точек (возможно придется добавить вражескую.... потом)
-            pat = from Dot move in get_non_blocked where move.Own == StateOwn.Empty
-                  let neibhordots = NeighborDots(move)
-                  from Dot dotComputer0 in neibhordots
-                  where dotComputer0.Own == Owner// && Distance(dotComputer0, move) == 1.4f
-                  from Dot dotComputer1 in neibhordots
-                  where dotComputer1.Own == Owner && Distance(dotComputer1, dotComputer0) >= 2f
-                  && CommonDots(dotComputer0, dotComputer1,Owner).Count==0
-                 //&& Distance(dotComputer0, dotComputer1) == 2f
-
+            // +     + паттерн на соединение двух точек без вражеской точки
+            // или
+            //
+            // -  +м или разрыв вражеской связи
+            // +  +   -
+            pat = from Dot move in get_non_blocked
+                  where move.Own == StateOwn.Empty
+                  let neibhordots = NeighborDots(move).Where(dt => dt.Own == Owner).ToList()
+                  where neibhordots.Count == 2 && Distance(neibhordots[0], neibhordots[1]) >= 2
                   select new Dot(move.X, move.Y, NumberPattern: 5, Rating: 3, Tag: $"CheckPattern({Owner})");
+            ld.AddRange(pat.Distinct(new DotEq()));
+            //******************************************************************************************
+            // Паттерн на создание связи с точками через 2 клетки
+            // +  -  +   или   +  -
+            //   м+              м+  +
+            pat = from Dot move in get_non_blocked where move.Own == StateOwn.Empty
+                  let dotsOwner = NeighborDots(move).Where(dt => dt.Own == Owner).ToList()
+                  let dotsEnemy = NeighborDotsSNWE(move).Where(dt => dt.Own == Enemy).ToList()
+                  where dotsEnemy.Count == 1 && dotsOwner.Count == 2
+                  && Distance(dotsOwner[0], dotsOwner[1]) >= 2f
+                  select new Dot(move.X, move.Y, NumberPattern: 3, Rating: 2, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEq()));
 
             return ld;
@@ -2138,7 +2072,7 @@ this[dot.X, dot.Y -1]};
             Dot bm = null;
             StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
 
-            #region ParallelTasks
+        #region ParallelTasks
 
             int BlockedPlayer = 0;
             int BlockedEnemy = 0;
@@ -2166,14 +2100,15 @@ this[dot.X, dot.Y -1]};
             } //close CheckMove({Enemy})
             ); //close parallel.invoke
             StopWatch($"CheckMove - {sW2.Elapsed.Milliseconds.ToString()}", progress);
-            if (bm != null)
+            #region Проверка, кто больше окружит и будет ли угроза после окружения
+            if (moves.Count > 0)
             {
-                moves.Add(bm);
-                #region Проверка, кто больше окружит и будет ли угроза после окружения
+                
                 return MovesAnaliz(moves, BlockedPlayer - BlockedEnemy);
-                #endregion
+                
             }
-            #endregion
+            #endregion Проверка
+            #endregion CheckMove
             //bm = CheckPatternVilka1x1(Player);
             //if (bm != null)
             //{
@@ -2364,7 +2299,7 @@ this[dot.X, dot.Y -1]};
         int res_last_move; //хранит результат хода
                            //int recursion_depth;
         const int MAX_RECURSION = 3;
-        const int MAX_COUNTMOVES = 3;
+        const int MAX_COUNTMOVES = 5;
         int recursion_depth;
         Dot tempmove;
         private GameDots gameDots_Copy;
@@ -2383,9 +2318,7 @@ this[dot.X, dot.Y -1]};
             List<Dot> lst_best_move = new List<Dot>();//сюда заносим лучшие ходы
             if (recursion_depth == 1) counter_moves = 1;
             recursion_depth++;
-            counter_moves++;
             if (recursion_depth > MAX_RECURSION) return StateOwn.Empty;
-
             lst_best_move = BestMove(Player, progress);
             foreach (Dot d in lst_best_move)
             {
@@ -2412,12 +2345,13 @@ this[dot.X, dot.Y -1]};
 
             if (lst_best_move.Count > 0)
             {
-                int i = 0;
+                int progress_counter = 0;
                 #region Cycle
-                foreach (Dot move in lst_best_move)
+                for (int i = 0; i < lst_best_move.Count; i++)
                 {
-                    i++;
-                    if (progress != null) progress.Report("Wait..." + i * 100 / lst_best_move.Count + "%");
+                    Dot move = lst_best_move[i];
+                    progress_counter++;
+                    if (progress != null) progress.Report("Wait..." + progress_counter * 100 / lst_best_move.Count + "%");
                     #region ходим в проверяемые точки
                     if (counter_moves > MAX_COUNTMOVES) break;
                     //**************делаем ход***********************************
