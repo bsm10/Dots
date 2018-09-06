@@ -135,9 +135,9 @@ namespace DotsGame
             }
 
         }
-        public class ChainToFixed : IEqualityComparer<Chain>
+        public class ChainsToFixed : IEqualityComparer<Chain>
         {
-            public ChainToFixed(Dot dot, Dot dotFixed, List<Chain> ld)
+            public ChainsToFixed(Dot dot, Dot dotFixed, List<Chain> ld)
             {
                 Dot = dot;
                 DotFixed = dotFixed;
@@ -172,6 +172,29 @@ namespace DotsGame
             }
 
         }
+
+        public class Triangle
+        {
+            public Triangle(Dot dot1_45, Dot dot_90, Dot dot2_45)
+            {
+                Dot1_45 = dot1_45;
+                Dot2_45 = dot2_45;
+                Dot_90 = dot_90;
+            }
+            public Dot Dot1_45 { get; set; }
+            public Dot Dot2_45 { get; set; }
+            public Dot Dot_90 { get; set; }
+            public float Perimetr => GameDots.Distance(Dot1_45, Dot2_45) +
+                                     GameDots.Distance(Dot1_45, Dot_90) +
+                                     GameDots.Distance(Dot2_45, Dot_90);
+            public bool Simple => Perimetr == 2.4f;
+
+            public override string ToString()
+            {
+                return $"Dot1 {Dot1_45.X}:{Dot1_45.Y} - DotE {Dot_90.X}:{Dot_90.Y} - Dot2 {Dot2_45.X}:{Dot2_45.Y}; Perimetr: {Perimetr}; {Simple}";
+            }
+        }
+
 
     }
 }
