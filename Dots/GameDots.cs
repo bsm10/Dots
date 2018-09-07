@@ -1587,6 +1587,7 @@ this[dot.X, dot.Y -1]};
 
             foreach (Chain5Dots d in lde3)
             {
+
                 //делаем 2 хода, чтобы проверить, замкнется регион или нет
                 GameDots_Copy.Move(new Dot(d.DotE1, Owner));
                 GameDots_Copy.MakeMove(d.DotE3, Owner);
@@ -1595,8 +1596,9 @@ this[dot.X, dot.Y -1]};
                     d.DotE3.Rating = GameDots_Copy.Goal.CountBlocked;
                     ld.Add(new Dot(d.DotE3));
                 }
-                GameDots_Copy.UndoMove(d.DotE3);
-                GameDots_Copy.UndoMove(d.DotE1);
+                GameDots_Copy = GetGameDotsCopy(StackMoves);
+                //GameDots_Copy.UndoMove(d.DotE3);
+                //GameDots_Copy.UndoMove(d.DotE1);
             }
             Dot result = ld.Where(dt => dt.Rating == ld.Max(d => d.Rating)).ElementAtOrDefault(0);
             if (result != null)
@@ -1651,9 +1653,10 @@ this[dot.X, dot.Y -1]};
                     ch.DotE.Rating = GameDots_Copy.Goal.CountBlocked;
                     ld.Add(new Dot(ch.DotE));
                 }
-                GameDots_Copy.UndoMove(d3);
-                GameDots_Copy.UndoMove(d2);
-                GameDots_Copy.UndoMove(d1);
+                GameDots_Copy = GetGameDotsCopy(ListMoves);
+                //GameDots_Copy.UndoMove(d3);
+                //GameDots_Copy.UndoMove(d2);
+                //GameDots_Copy.UndoMove(d1);
 
             }
 
@@ -1792,8 +1795,17 @@ this[dot.X, dot.Y -1]};
             () =>
             {
                 bm = CheckMove(Player);
-                if (bm != null) moves.Add(bm);
                 BlockedPlayer = Goal.CountBlocked;
+                if(bm != null)
+                {
+                    GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
+                    GameDots_Copy.MakeMove(bm, Player);
+                    Dot enemydot = GameDots_Copy.CheckMove(Enemy);
+                    //если после окружения нет угрозы окружения противником, ставим тег *
+                    if (enemydot == null) bm.Tag = "*";
+                    moves.Add(bm);
+                    GameDots_Copy = null;
+                }
             }, // close CheckMove({Player})
             () =>
             {
@@ -1804,10 +1816,21 @@ this[dot.X, dot.Y -1]};
             ); //close parallel.invoke
             StopWatch($"CheckMove - {sW2.Elapsed.Milliseconds.ToString()}", progress);
             #region Проверка, кто больше окружит и будет ли угроза после окружения
-            if (moves.Count > 0)
+
+            if (moves.Count > 1)
             {
+                Dot d = moves.Find(dt => dt.Tag == "*");
+                if (d!=null)
+                {
+                    List<Dot> ldt = new List<Dot>();
+                    ldt.Add(d);
+                    return ldt;
+                }
+                else
+                {
+                    return MovesAnaliz(moves, BlockedPlayer - BlockedEnemy);
+                }
                 
-                return MovesAnaliz(moves, BlockedPlayer - BlockedEnemy);
                 
             }
             #endregion Проверка
@@ -1945,8 +1968,8 @@ this[dot.X, dot.Y -1]};
             //#endif
 
             #endregion
-            //moves=moves
-            return moves.Where(d => d != null).Distinct(new DotEqbyRating()).ToList();
+            List<Dot> _result = moves.Where(d => d != null).Distinct(new DotEqbyRating()).ToList();
+            return _result;
         }
 
         private List<Dot> MovesAnaliz(List<Dot> moves, int DeltaBlocked)
