@@ -160,20 +160,17 @@ namespace GameCore
         /// <returns></returns>
         public Dot GetDotCopy(Dot DotForCopy)
         {
-            Dot d = new Dot(x: DotForCopy.X,
-            y: DotForCopy.Y,
-            Owner: DotForCopy.Own,
-            NumberPattern: DotForCopy.NumberPattern,
-            Rating: DotForCopy.Rating,
-            Tag: DotForCopy.Tag)
+            Dot d = new Dot(x: DotForCopy.X, y: DotForCopy.Y, Owner: DotForCopy.Own,
+            NumberPattern: DotForCopy.NumberPattern, Rating: DotForCopy.Rating, Tag: DotForCopy.Tag)
             {
                 Blocked = DotForCopy.Blocked,
-                BlokingDots = DotForCopy.BlokingDots,
                 BonusDot = DotForCopy.BonusDot,
                 Fixed = DotForCopy.Fixed,
                 IndexDot = DotForCopy.IndexDot,
                 IndexRelation = DotForCopy.IndexRelation,
             };
+            d.BlokingDots.AddRange(DotForCopy.BlokingDots);
+
             return d;
         }
 
@@ -385,8 +382,28 @@ namespace GameCore
                 //Calculate the hash code for the product.
                 return hashDot1 * hashDot2;
             }
+        }
+        class Chains3DotsComparerByEmpty : IEqualityComparer<Chain3Dots>
+        {
+            public bool Equals(Chain3Dots ch1, Chain3Dots ch2)
+            {
+                if (ch1.DotE == ch2.DotE) return true;
+                return false;
+            }
+
+            // If Equals() returns true for a pair of objects
+            // then GetHashCode() must return the same value for these objects.
+
+            public int GetHashCode(Chain3Dots ch)
+            {
+                if (ReferenceEquals(ch, null)) return 0;
+                int hashDot3 = ch.DotE.GetHashCode();
+                //Calculate the hash code for the product.
+                return hashDot3;
+            }
 
         }
+
         class ChainsComparer : IEqualityComparer<Chain>
         {
             public bool Equals(Chain ch1, Chain ch2)
@@ -1061,6 +1078,10 @@ this[dot.X, dot.Y -1]};
         {
             return NeighborDots(d1).Intersect(NeighborDots(d2), new DotEq()).Where(nd=>nd.Own==Own).ToList();
         }
+        private IEnumerable<Dot> CommonDotsE(Dot d1, Dot d2, StateOwn Own)
+        {
+            return NeighborDots(d1).Intersect(NeighborDots(d2), new DotEq()).Where(nd => nd.Own == Own);
+        }
 
         public List<Dot> CommonEmptyDots(Dot d1, Dot d2)
         {
@@ -1108,10 +1129,10 @@ this[dot.X, dot.Y -1]};
             GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
             List<Dot> happy_dots = new List<Dot>();
             IEnumerable<Chain3Dots> qry = SelectDotsCheckMove(Owner, GameDots_Copy);
-
-            foreach (Chain3Dots ld in qry.Distinct(new Chains3DotsComparer()))
-            //foreach (Dot d in qry)
+            //Parallel.ForEach()
+            foreach (Chain3Dots ld in qry)
             {
+                GameDots_Copy = GetGameDotsCopy(StackMoves);
                 //делаем ход
                 Dot d = ld.DotE;
                 GameDots_Copy.MakeMove(d, Owner);
@@ -1119,7 +1140,7 @@ this[dot.X, dot.Y -1]};
                 {
                     happy_dots.Add(new Dot(d.X, d.Y, d.Own, 777, GameDots_Copy.Goal.CountBlocked));
                 }
-                GameDots_Copy.UndoMove(d);
+                //GameDots_Copy.UndoMove(d);
             }
             //выбрать точку, которая максимально окружит
             Dot result = happy_dots.Distinct(new DotEq()).Where(dt =>
@@ -1140,40 +1161,57 @@ this[dot.X, dot.Y -1]};
         }
         private IEnumerable<Chain3Dots> SelectDotsCheckMove(StateOwn Owner, GameDots GameDots_Copy)
         {
+            StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
             List<Dot> dots = GameDots_Copy.GetDots(Owner);
+            //это самый быстрый вариант запроса
             IEnumerable<Chain3Dots> qry = from Dot d1 in dots
                                           from Dot d2 in dots
-                                          where d2.IndexRelation == d1.IndexRelation
-                                          && Distance(d1, d2) >= 2 && Distance(d1, d2) < 3
-                   from Dot d3 in GameDots_Copy.GetDots(StateOwn.Empty)
-                   where GameDots_Copy.CommonDots(d1, d2).Contains(d3)
-                   && Distance(d1, d3) >= 1 && Distance(d1, d3) < 2
-                   && Distance(d2, d3) >= 1 && Distance(d2, d3) < 2
-                   && GameDots_Copy.NeighborDotsSNWE(d3).Where(dt => dt.Own == Owner).Count() <= 2
-                   ||
-                   GameDots_Copy.CommonDots(d1, d2).Contains(d3)
-                   && Distance(d1, d3) == 1 && Distance(d2, d3) == 2
-                   && GameDots_Copy.NeighborDots(d3).Where(dt => dt.Own == Owner).Count() == 2
+                                          where Distance(d1, d2) >= 2f && Distance(d1, d2) <= 2.8f
+                                          && d2.IndexRelation == d1.IndexRelation &&
+                                          GameDots_Copy.CommonDots(d1, d2, Owner).Count() == 0 &&
+                                          GameDots_Copy.CommonDots(d1, d2).Where(dt => dt.Blocked).Count() == 0 &&
+                                          GameDots_Copy.CommonDots(d1, d2).Where(dt => dt.Own == 0).Count() > 0
+                                          ||
+                                          d1 != d2 && d2.IndexRelation == d1.IndexRelation && Distance(d1, d2) == 2
+                                          && GameDots_Copy.CommonDotSNWE(d1, d2).Own == Enemy
+                                          && GameDots_Copy.CommonDots(d1, d2).Where(dt => dt.Own == 0).Count() == 1
+                                          let move = GameDots_Copy.CommonDots(d1, d2).Where(dt => dt.Own == 0).FirstOrDefault()
 
-                   select new Chain3Dots(d1, d3, d2);
 
-            //return from Dot d1 in GameDots_Copy.GetDots(Owner)
-            //       from Dot d2 in GameDots_Copy.GetDots(Owner)
-            //       where d2.IndexRelation == d1.IndexRelation
-            //       && Distance(d1, d2) >= 2 && Distance(d1, d2) < 3
-            //       from Dot d3 in GameDots_Copy.GetDots(StateOwn.Empty)
-            //       where
-            //       GameDots_Copy.CommonDots(d1, d2).Contains(d3)
-            //       && Distance(d1, d3) >= 1 && Distance(d1, d3) < 2
-            //       && Distance(d2, d3) >= 1 && Distance(d2, d3) < 2
-            //       && GameDots_Copy.NeighborDotsSNWE(d3).Where(dt => dt.Own == Owner).Count() <= 2
-            //       ||
-            //       GameDots_Copy.CommonDots(d1, d2).Contains(d3)
-            //       && Distance(d1, d3) == 1 && Distance(d2, d3) == 2
-            //       && GameDots_Copy.NeighborDots(d3).Where(dt => dt.Own == Owner).Count() == 2
-            //       select new Chain3Dots(d1, d3, d2);
+                                          //это самый медленный вариант запроса
+                                          //IEnumerable<Chain3Dots> qry = from Dot move in GameDots_Copy.GetDots(StateOwn.Empty)
+                                          //                              let neib = GameDots_Copy.NeighborDots(move, Owner)
+                                          //                              where neib.Count > 1
+                                          //                              from Dot d1 in neib
+                                          //                              from Dot d2 in neib
+                                          //                              where d1 != d2 && d2.IndexRelation == d1.IndexRelation &&
+                                          //                              GameDots_Copy.CommonDots(d1, d2, Owner).Count() == 0
+                                          //                              ||
+                                          //                              d1 != d2 && d2.IndexRelation == d1.IndexRelation && Distance(d1, d2) == 2
+                                          //                              && GameDots_Copy.CommonDotSNWE(d1, d2).Own == Enemy
+                                          //                              && GameDots_Copy.CommonDots(d1, d2).Where(dt => dt.Own == 0).Count() == 1
 
-            return qry;
+                                          //это средний по скорости вариант запроса
+                                          //IEnumerable<Chain3Dots> qry = from Dot d1 in dots
+                                          //                              from Dot d2 in dots
+                                          //                              where d2.IndexRelation == d1.IndexRelation
+                                          //                              && Distance(d1, d2) >= 2 && Distance(d1, d2) < 3
+                                          //                              from Dot move in GameDots_Copy.GetDots(StateOwn.Empty)
+                                          //                              where GameDots_Copy.CommonDots(d1, d2).Contains(move)
+                                          //                              && Distance(d1, move) >= 1 && Distance(d1, move) < 2
+                                          //                              && Distance(d2, move) >= 1 && Distance(d2, move) < 2
+                                          //                              && GameDots_Copy.NeighborDotsSNWE(move).Where(dt => dt.Own == Owner).Count() <= 2
+                                          //                              ||
+                                          //                              GameDots_Copy.CommonDots(d1, d2).Contains(move)
+                                          //                              && Distance(d1, move) == 1 && Distance(d2, move) == 2
+                                          //                              && GameDots_Copy.NeighborDots(move).Where(dt => dt.Own == Owner).Count() == 2
+
+
+
+                                          select new Chain3Dots(d1, move, d2);
+
+
+            return qry.Distinct(new Chains3DotsComparerByEmpty());
         }
         private Dot CheckPatternVilkaNextMove(StateOwn Owner)
         //Доработать!!! неправильно работает
@@ -1229,7 +1267,6 @@ this[dot.X, dot.Y -1]};
                 GD.StackMoves.Add(dt);
                 GD.ListMoves.Add(dt);
             }
-
             return GD;
         }
 
