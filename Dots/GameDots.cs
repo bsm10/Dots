@@ -1340,6 +1340,20 @@ this[dot.X, dot.Y -1]};
                   select new Dot(dotsEmpty[0].X, dotsEmpty[0].Y, NumberPattern: 5, Rating: 2, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEqbyRating()));
 
+            GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
+            //проверка, не делается ли ход в капкан, и отбрасываем плохие точки
+            for (int i = 0; i < ld.Count; i++)
+            {
+                Dot d = ld[i];
+                //делаем ход, чтобы проверить, замкнется регион или нет
+                GameDots_Copy.MakeMove(d, Owner);
+                if (GameDots_Copy.Goal.Player == Enemy || GameDots_Copy.CheckMove(Enemy)!=null)
+                {
+                    ld.Remove(d);
+                }
+                GameDots_Copy = GetGameDotsCopy(StackMoves);
+            }
+
             return ld;
         }
         private Dot CheckPattern_vilochka(StateOwn Owner)
@@ -1777,8 +1791,8 @@ this[dot.X, dot.Y -1]};
             List<Dot> moves = new List<Dot>();
             Dot bm = null;
             StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
-
-        #region ParallelTasks
+            object sync = new Object();
+            #region ParallelTasks
 
             int BlockedPlayer = 0;
             int BlockedEnemy = 0;
@@ -1794,24 +1808,31 @@ this[dot.X, dot.Y -1]};
             Parallel.Invoke(
             () =>
             {
-                bm = CheckMove(Player);
-                BlockedPlayer = Goal.CountBlocked;
-                if(bm != null)
+                lock (sync)
                 {
-                    GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
-                    GameDots_Copy.MakeMove(bm, Player);
-                    Dot enemydot = GameDots_Copy.CheckMove(Enemy);
-                    //если после окружения нет угрозы окружения противником, ставим тег *
-                    if (enemydot == null) bm.Tag = "*";
-                    moves.Add(bm);
-                    GameDots_Copy = null;
+                    bm = CheckMove(Player);
+                    BlockedPlayer = Goal.CountBlocked;
+                    if (bm != null)
+                    {
+                        GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
+                        GameDots_Copy.MakeMove(bm, Player);
+                        Dot enemydot = GameDots_Copy.CheckMove(Enemy);
+                        //если после окружения нет угрозы окружения противником, ставим тег *
+                        if (enemydot == null) bm.Tag = "*";
+                        moves.Add(bm);
+                        GameDots_Copy = null;
+                    }
                 }
             }, // close CheckMove({Player})
             () =>
             {
-                bm = CheckMove(Enemy);
-                if (bm != null) moves.Add(bm);
-                BlockedEnemy = Goal.CountBlocked;
+                lock (sync)
+                {
+
+                    bm = CheckMove(Enemy);
+                    if (bm != null) moves.Add(bm);
+                    BlockedEnemy = Goal.CountBlocked;
+                }
             } //close CheckMove({Enemy})
             ); //close parallel.invoke
             StopWatch($"CheckMove - {sW2.Elapsed.Milliseconds.ToString()}", progress);
@@ -1851,44 +1872,58 @@ this[dot.X, dot.Y -1]};
             Parallel.Invoke(
             () =>
             {
-                bm = CheckPattern_vilochka(Player);
-                if (bm != null)
+                lock (sync)
                 {
-#if DEBUG
+
+                    bm = CheckPattern_vilochka(Player);
+                    if (bm != null)
                     {
-                        DebugInfo.lstDBG2.Add(bm.ToString() + " ----> CheckPattern_vilochka ");
-                    }
+#if DEBUG
+                        {
+                            DebugInfo.lstDBG2.Add(bm.ToString() + " ----> CheckPattern_vilochka ");
+                        }
 #endif
-                    bm.Tag = "CheckPattern_vilochka(" + Player + ")";
-                    bm.NumberPattern = 777; //777-ход в результате которого получается окружение -компьютер побеждает
-                    moves.Add(bm);
+                        bm.Tag = "CheckPattern_vilochka(" + Player + ")";
+                        bm.NumberPattern = 777; //777-ход в результате которого получается окружение -компьютер побеждает
+                        moves.Add(bm);
+                    }
                 }
             }, //CheckPattern_vilochka {Player}
             () =>
             {
-                bm = CheckPattern_vilochka(Enemy);
-                if (bm != null)
+                lock (sync)
                 {
-                    bm.Tag = "CheckPattern_vilochka(" + Enemy + ")";
-                    bm.NumberPattern = 666; //777-ход в результате которого получается окружение -компьютер побеждает
-                    moves.Add(bm);
-                }
 
+                    bm = CheckPattern_vilochka(Enemy);
+                    if (bm != null)
+                    {
+                        bm.Tag = "CheckPattern_vilochka(" + Enemy + ")";
+                        bm.NumberPattern = 666; //777-ход в результате которого получается окружение -компьютер побеждает
+                        moves.Add(bm);
+                    }
+                }
             }, //CheckPattern_vilochka {Enemy}
             () =>
             {
-                bm = CheckPatternVilka1x1(Player);
-                if (bm != null)
+                lock (sync)
                 {
-                    moves.Add(bm);
+
+                    bm = CheckPatternVilka1x1(Player);
+                    if (bm != null)
+                    {
+                        moves.Add(bm);
+                    }
                 }
             }, //CheckPatternVilka1x1(Player)
             () =>
             {
-                bm = CheckPatternVilka1x1(Enemy);
-                if (bm != null)
+                lock (sync)
                 {
-                    moves.Add(bm);
+                    bm = CheckPatternVilka1x1(Enemy);
+                    if (bm != null)
+                    {
+                        moves.Add(bm);
+                    }
                 }
             } //CheckPatternVilka1x1(Enemy)
 
@@ -1904,13 +1939,19 @@ this[dot.X, dot.Y -1]};
             Parallel.Invoke(
             () =>
             {
-                bm = CheckPatternVilka2x2(Player);
-                if (bm != null) moves.Add(bm);
+                lock (sync)
+                {
+                    bm = CheckPatternVilka2x2(Player);
+                    if (bm != null) moves.Add(bm);
+                }
             }, // vilka2x2 Player
             () =>
             {
-                bm = CheckPatternVilka2x2(Enemy);
-                if (bm != null) moves.Add(bm);
+                lock (sync)
+                {
+                    bm = CheckPatternVilka2x2(Enemy);
+                    if (bm != null) moves.Add(bm);
+                }
             } // vilka2x2 Enemy
             ); //close parallel.invoke
             StopWatch($"CheckPatternVilka2x2 {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
@@ -1922,11 +1963,17 @@ this[dot.X, dot.Y -1]};
             Parallel.Invoke(
             () =>
             {
-                moves.AddRange(CheckPattern(Player));
+                lock (sync)
+                {
+                    moves.AddRange(CheckPattern(Player));
+                }
             }, // close CheckPattern {Player}
             () =>
             {
-                moves.AddRange(CheckPattern(Enemy));
+                lock (sync)
+                {
+                    moves.AddRange(CheckPattern(Enemy));
+                }
             } //close CheckPattern {Enemy}
             ); //close parallel CheckPattern
             StopWatch($"CheckPattern - {sW2.Elapsed.Milliseconds.ToString()}", progress);
