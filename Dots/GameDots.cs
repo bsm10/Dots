@@ -819,7 +819,7 @@ namespace GameCore
         /// отмена хода
         /// </summary>
         /// <param name="dot"></param>
-        public void UndoMove(Dot dot, bool full = false)
+        public void UndoMove1(Dot dot, bool full = false)
         {
             StackMoves.Remove(dot);
             List<Dot> StackMoveCopy = new List<Dot>();//создаем рабочуюю копию стека
@@ -836,6 +836,24 @@ namespace GameCore
                 MakeMove(StackMoveCopy[i], StackMoveCopy[i].Own);
             }
             if (full)//если полная отмена
+            {
+                ListMoves.Clear();
+                ListMoves.AddRange(StackMoves);
+                LinkDots();
+            }
+        }
+        public void UndoMove(Dot dot, bool full = false)//отмена хода
+        {
+            int ind = IndexDot(dot.X, dot.Y);
+            StackMoves.Remove(Dots[ind]);
+            Dots[ind].Restore();
+            foreach (Dot d in StackMoves)
+            {
+                d.BlokingDots.Clear();
+                d.Blocked = false;
+            }
+            count_blocked_dots = CheckBlocked();
+            if(full)
             {
                 ListMoves.Clear();
                 ListMoves.AddRange(StackMoves);
@@ -915,11 +933,11 @@ namespace GameCore
         /// <returns>количество окруженных точек</returns>
         public int CheckBlocked()
         {
-            for (int i = 0; i < StackMoves.Count; i++)
-            {
-                Dot d = StackMoves[i];
-                CheckDotForBlock(d);
-            }
+                for (int i = 0; i < StackMoves.Count; i++)
+                {
+                    Dot d = StackMoves[i];
+                    CheckDotForBlock(d);
+                }
             return StackMoves.Where(dt => dt.Blocked).Count();
         }
 
@@ -927,7 +945,6 @@ namespace GameCore
         {
             int counter = 0;
             Lst_blocked_dots.Clear(); Lst_in_region_dots.Clear();
-            //UnmarkAllDots();
             if (d.Blocked | DotIsBlocked(d) == true)
             {
                 d.Blocked = true;
@@ -1270,59 +1287,57 @@ this[dot.X, dot.Y -1]};
             return GD;
         }
 
-        //private int iNumberPattern = 0;
-
-        private List<Dot> CheckPattern(StateOwn Owner)
+        private List<Dot> CheckPattern(StateOwn Owner, StateOwn Enemy)
         {
-            StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
+            object sync = new Object();
+            //StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
             List<Dot> ld = new List<Dot>();
             IEnumerable<Dot> get_non_blocked = from Dot d in this where d.Blocked == false select d;//получить коллекцию незаблокированных точек
             IEnumerable<Dot> pat;
-            
             //
             // -  -
             // +  +m
             pat = from Dot move in GetDots(StateOwn.Empty)
                   let lst_tri = GetSimpleTriangles(move)
                   from Triangle t in lst_tri
-                  where move == t.Dot1_45 
-                  && t.Dot2_45.Own==StateOwn.Human 
-                  && t.Dot_90.Own==StateOwn.Computer
+                  where move == t.Dot1_45
+                  && t.Dot2_45.Own == StateOwn.Human
+                  && t.Dot_90.Own == StateOwn.Computer
                   select new Dot(move.X, move.Y, NumberPattern: 1, Rating: 6, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEqbyRating()));
-
             //********************************************************************
             // +  -
             // -  +m
             pat = from Dot move in get_non_blocked
                   where move.Own == StateOwn.Empty
-                  let dotsOwner = NeighborDots(move,Owner)
+                  let dotsOwner = NeighborDots(move, Owner)
                   let dotsEnemy = NeighborDotsSNWE(move, Enemy)
                   where dotsEnemy.Count == 2 && dotsOwner.Count == 1
-                  && Distance(dotsEnemy[0], dotsEnemy[1]) == 1.4f 
+                  && Distance(dotsEnemy[0], dotsEnemy[1]) == 1.4f
                   && Distance(dotsOwner[0], dotsEnemy[0]) == 1f
                   && Distance(dotsOwner[0], dotsEnemy[1]) == 1f
                   select new Dot(move.X, move.Y, NumberPattern: 2, Rating: 4, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEqbyRating()));
             //***************************************************************************************************
-            //    
             // +  +m  + паттерн на соединение двух точек без вражеской точки
             // или
             //
             // -  +м или разрыв вражеской связи
             // +  +   -
-            pat = from Dot move in get_non_blocked where move.Own == StateOwn.Empty
+            pat = from Dot move in get_non_blocked
+                  where move.Own == StateOwn.Empty
                   let dotsOwner = NeighborDots(move, Owner).Where(dt => !dt.Blocked).ToList()
                   let dotsEnemy = NeighborDots(move, Enemy).Where(dt => !dt.Blocked).ToList()
                   where dotsEnemy.Count == 2 && Distance(dotsEnemy[0], dotsEnemy[1]) >= 2
-                  && dotsOwner.Count > 0 && Distance(dotsOwner[0], move)<=1.4f
+                  && dotsOwner.Count > 0 && Distance(dotsOwner[0], move) <= 1.4f
                   select new Dot(move.X, move.Y, NumberPattern: 3, Rating: 2, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEqbyRating()));
             //******************************************************************************************
             // Паттерн на создание связи с точками через 2 клетки
             // +  -  +   или   +  -
             //   м+              м+  +
-            pat = from Dot move in get_non_blocked where move.Own == StateOwn.Empty
+            pat = from Dot move in get_non_blocked
+                  where move.Own == StateOwn.Empty
                   let dotsOwner = NeighborDots(move, Owner).Where(dt => !dt.Blocked).ToList()
                   let dotsEnemy = NeighborDotsSNWE(move, Enemy).Where(dt => !dt.Blocked).ToList()
                   where dotsEnemy.Count == 1 && dotsOwner.Count == 2
@@ -1333,13 +1348,137 @@ this[dot.X, dot.Y -1]};
             //   +м
             //   -  +
             //   +
-            pat = from Dot dotEnemy in get_non_blocked where dotEnemy.Own == Enemy
+            pat = from Dot dotEnemy in get_non_blocked
+                  where dotEnemy.Own == Enemy
                   let dotsOwner = NeighborDotsSNWE(dotEnemy, Owner).Where(dt => !dt.Blocked).ToList()
-                  let dotsEmpty = NeighborDotsSNWE(dotEnemy,0).Where(dt => !dt.Blocked).ToList()
+                  let dotsEmpty = NeighborDotsSNWE(dotEnemy, 0).Where(dt => !dt.Blocked).ToList()
                   where dotsEmpty.Count == 2 && dotsOwner.Count == 2
                   select new Dot(dotsEmpty[0].X, dotsEmpty[0].Y, NumberPattern: 5, Rating: 2, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEqbyRating()));
 
+            CheckPatternDot(Owner, Enemy, ld);
+
+            return ld;
+        }
+
+//медленно!
+        private List<Dot> CheckPattern1(StateOwn Owner, StateOwn Enemy)
+        {
+            object sync = new Object();
+            //StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
+            List<Dot> ld = new List<Dot>();
+            IEnumerable<Dot> get_non_blocked = from Dot d in this where d.Blocked == false select d;//получить коллекцию незаблокированных точек
+            IEnumerable<Dot> pat;
+            Parallel.Invoke(
+            () =>
+            {
+                lock (sync)
+                {
+                    //
+                    // -  -
+                    // +  +m
+                    pat = from Dot move in GetDots(StateOwn.Empty)
+                          let lst_tri = GetSimpleTriangles(move)
+                          from Triangle t in lst_tri
+                          where move == t.Dot1_45
+                          && t.Dot2_45.Own == Enemy
+                          && t.Dot_90.Own == Owner
+                          ||
+                          move == t.Dot1_45
+                          && t.Dot2_45.Own == Owner
+                          && t.Dot_90.Own == Enemy
+
+                          select new Dot(move.X, move.Y, NumberPattern: 1, Rating: 6, Tag: $"CheckPattern({t.Dot2_45.Own})");
+                    ld.AddRange(pat.Distinct(new DotEqbyRating()));
+                }
+            }, // pattern 1
+            () =>
+            {
+                lock (sync)
+                {
+                    //********************************************************************
+                    // +  -
+                    // -  +m
+                    pat = from Dot move in get_non_blocked
+                          where move.Own == StateOwn.Empty
+                          let dotsOwner = NeighborDots(move, Owner)
+                          let dotsEnemy = NeighborDotsSNWE(move, Enemy)
+                          where dotsEnemy.Count == 2 && dotsOwner.Count == 1
+                          && Distance(dotsEnemy[0], dotsEnemy[1]) == 1.4f
+                          && Distance(dotsOwner[0], dotsEnemy[0]) == 1f
+                          && Distance(dotsOwner[0], dotsEnemy[1]) == 1f
+
+                          select new Dot(move.X, move.Y, NumberPattern: 2, Rating: 4, Tag: $"CheckPattern({Owner})");
+                    ld.AddRange(pat.Distinct(new DotEqbyRating()));
+                }
+            }, // pattern 2
+            () =>
+            {
+                lock (sync)
+                {
+                    //***************************************************************************************************
+                    // +  +m  + паттерн на соединение двух точек без вражеской точки
+                    // или
+                    //
+                    // -  +м или разрыв вражеской связи
+                    // +  +   -
+                    pat = from Dot move in get_non_blocked
+                          where move.Own == StateOwn.Empty
+                          let dotsOwner = NeighborDots(move, Owner).Where(dt => !dt.Blocked).ToList()
+                          let dotsEnemy = NeighborDots(move, Enemy).Where(dt => !dt.Blocked).ToList()
+                          where dotsEnemy.Count == 2 && Distance(dotsEnemy[0], dotsEnemy[1]) >= 2
+                          && dotsOwner.Count > 0 && Distance(dotsOwner[0], move) <= 1.4f
+                          select new Dot(move.X, move.Y, NumberPattern: 3, Rating: 2, Tag: $"CheckPattern({Owner})");
+                    ld.AddRange(pat.Distinct(new DotEqbyRating()));
+                }
+            },// pattern 3
+            () =>
+            {
+                lock (sync)
+                {
+                    //******************************************************************************************
+                    // Паттерн на создание связи с точками через 2 клетки
+                    // +  -  +   или   +  -
+                    //   м+              м+  +
+                    pat = from Dot move in get_non_blocked
+                          where move.Own == StateOwn.Empty
+                          let dotsOwner = NeighborDots(move, Owner).Where(dt => !dt.Blocked).ToList()
+                          let dotsEnemy = NeighborDotsSNWE(move, Enemy).Where(dt => !dt.Blocked).ToList()
+                          where dotsEnemy.Count == 1 && dotsOwner.Count == 2
+                          && Distance(dotsOwner[0], dotsOwner[1]) >= 2f
+                          select new Dot(move.X, move.Y, NumberPattern: 4, Rating: 2, Tag: $"CheckPattern({Owner})");
+                    ld.AddRange(pat.Distinct(new DotEqbyRating()));
+
+                }
+            },// pattern 4
+            () =>
+            {
+                lock (sync)
+                {
+                    //*******************************************************************************************
+                    //   +м
+                    //   -  +
+                    //   +
+                    pat = from Dot dotEnemy in get_non_blocked
+                          where dotEnemy.Own == Enemy
+                          let dotsOwner = NeighborDotsSNWE(dotEnemy, Owner).Where(dt => !dt.Blocked).ToList()
+                          let dotsEmpty = NeighborDotsSNWE(dotEnemy, 0).Where(dt => !dt.Blocked).ToList()
+                          where dotsEmpty.Count == 2 && dotsOwner.Count == 2
+                          select new Dot(dotsEmpty[0].X, dotsEmpty[0].Y, NumberPattern: 5, Rating: 2, Tag: $"CheckPattern({Owner})");
+                    ld.AddRange(pat.Distinct(new DotEqbyRating()));
+
+                }
+            }// pattern 5
+
+        ); //close parallel.invoke
+
+            CheckPatternDot(Owner, Enemy, ld);
+
+            return ld;
+        }
+
+        private void CheckPatternDot(StateOwn Owner, StateOwn Enemy, List<Dot> ld)
+        {
             GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
             //проверка, не делается ли ход в капкан, и отбрасываем плохие точки
             for (int i = 0; i < ld.Count; i++)
@@ -1347,15 +1486,14 @@ this[dot.X, dot.Y -1]};
                 Dot d = ld[i];
                 //делаем ход, чтобы проверить, замкнется регион или нет
                 GameDots_Copy.MakeMove(d, Owner);
-                if (GameDots_Copy.Goal.Player == Enemy || GameDots_Copy.CheckMove(Enemy)!=null)
+                if (GameDots_Copy.Goal.Player == Enemy || GameDots_Copy.CheckMove(Enemy) != null)
                 {
                     ld.Remove(d);
                 }
                 GameDots_Copy = GetGameDotsCopy(StackMoves);
             }
-
-            return ld;
         }
+
         private Dot CheckPattern_vilochka(StateOwn Owner)
         {
             StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
@@ -1960,22 +2098,23 @@ this[dot.X, dot.Y -1]};
             #region CheckPattern
             //moves.AddRange(CheckPattern(Player));
             StartWatch($"CheckPattern... ", progress);
-            Parallel.Invoke(
-            () =>
-            {
-                lock (sync)
-                {
-                    moves.AddRange(CheckPattern(Player));
-                }
-            }, // close CheckPattern {Player}
-            () =>
-            {
-                lock (sync)
-                {
-                    moves.AddRange(CheckPattern(Enemy));
-                }
-            } //close CheckPattern {Enemy}
-            ); //close parallel CheckPattern
+            moves.AddRange(CheckPattern(Player, Enemy));
+            //Parallel.Invoke(
+            //() =>
+            //{
+            //    lock (sync)
+            //    {
+            //        moves.AddRange(CheckPattern(Player));
+            //    }
+            //}, // close CheckPattern {Player}
+            //() =>
+            //{
+            //    lock (sync)
+            //    {
+            //        moves.AddRange(CheckPattern(Enemy));
+            //    }
+            //} //close CheckPattern {Enemy}
+            //); //close parallel CheckPattern
             StopWatch($"CheckPattern - {sW2.Elapsed.Milliseconds.ToString()}", progress);
             #endregion //CheckPattern
 
@@ -2054,7 +2193,7 @@ this[dot.X, dot.Y -1]};
         {
 #if DEBUG
             sW2.Start();
-            if (progress != null) progress.Report(MSG);
+            //if (progress != null) progress.Report(MSG);
             DebugInfo.StringMSG = MSG;
 #endif
         }
@@ -2063,7 +2202,7 @@ this[dot.X, dot.Y -1]};
 #if DEBUG
             sW2.Stop();
             DebugInfo.lstDBG1.Add(MSG);
-            if (progress != null) progress.Report(MSG);
+            //if (progress != null) progress.Report(MSG);
             sW2.Reset();
 #endif
         }
