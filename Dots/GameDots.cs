@@ -274,7 +274,7 @@ namespace GameCore
         {
             for (int i = 0; i < LstDots.Count; i++)
             {
-                LstDots[i].Blocked = Dots.Find(d => d.IndexDot == LstDots[i].IndexDot).Blocked;
+                LstDots[i].Blocked = Dots[LstDots[i].IndexDot].Blocked; 
             }
             return;
         }
