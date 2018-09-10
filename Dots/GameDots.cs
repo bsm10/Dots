@@ -148,7 +148,8 @@ namespace GameCore
                                          /// <summary>
                                          /// Основной список - вся доска
                                          /// </summary>
-        public List<Dot> Dots { get; set; }
+        public List<Dot> Dots1 { get; set; }
+        public Dot[,] Dots { get; set; }
         /// <summary>
         /// Показывает, чей ход
         /// </summary>
@@ -174,23 +175,26 @@ namespace GameCore
             return d;
         }
 
-        private GameDots CopyDots
-        {
-            get
-            {
-                GameDots ad = new GameDots(BoardWidth, BoardHeight);
-                for (int i = 0; i < Dots.Count; i++)
-                {
-                    ad.Dots[i].Blocked = Dots[i].Blocked;
-                    ad.Dots[i].Fixed = Dots[i].Fixed;
-                    ad.Dots[i].IndexDot = Dots[i].IndexDot;
-                    ad.Dots[i].Own = Dots[i].Own;
-                    ad.Dots[i].X = Dots[i].X;
-                    ad.Dots[i].Y = Dots[i].Y;
-                }
-                return ad;
-            }
-        }
+        //private GameDots CopyDots
+        //{
+        //    get
+        //    {
+        //        GameDots ad = new GameDots(BoardWidth, BoardHeight);
+        //        for (int i = 0; i < BoardWidth; i++)
+        //        {
+        //            for(int j = 0; j < BoardHeight; j++)
+        //            {
+        //                ad[i,j].Blocked = Dots[i,j].Blocked;
+        //                ad[i, j].Fixed = Dots[i, j].Fixed;
+        //                ad[i, j].IndexDot = Dots[i, j].IndexDot;
+        //                ad[i, j].Own = Dots[i, j].Own;
+        //                //ad[i, j].X = Dots[i].X;
+        //                //ad[i, j].Y = Dots[i].Y;
+        //            }
+        //        }
+        //        return ad;
+        //    }
+        //}
 
         public void LoadGame(List<Dot> ListDotForLoad)
         {
@@ -221,15 +225,15 @@ namespace GameCore
             int ind;
             BoardHeight = boardheight;
             BoardWidth = boardwidth;
-            Dots = new List<Dot>(boardwidth * boardheight); // главная коллекция точек
+            Dots = new Dot[boardwidth, boardheight];   //new List<Dot>(boardwidth * boardheight); // главная коллекция точек
             for (int i = 0; i < boardwidth; i++)
             {
                 for (int j = 0; j < boardheight; j++)
                 {
                     ind = IndexDot(i, j);
-                    Dots.Add(new Dot(i, j));
-                    Dots[ind].IndexDot = ind;
-                    if (i == 0 | i == (boardwidth - 1) | j == 0 | j == (boardheight - 1)) Dots[ind].Fixed = true;
+                    Dots[i, j] = new Dot(i, j);
+                    Dots[i, j].IndexDot = ind;
+                    if (i == 0 | i == (boardwidth - 1) | j == 0 | j == (boardheight - 1)) Dots[i, j].Fixed = true;
                     counter += 1;
                 }
             }
@@ -257,10 +261,10 @@ namespace GameCore
             //MakeIndexRelation();
         }
 
-        public GameDots(GameDots gameDots_Copy)
-        {
-            this.gameDots_Copy = gameDots_Copy;
-        }
+        //public GameDots(GameDots gameDots_Copy)
+        //{
+        //    this.gameDots_Copy = gameDots_Copy;
+        //}
 
         public void ListMoves_OnAdd(object sender, ListDotsEventArgs e)
         {
@@ -274,7 +278,7 @@ namespace GameCore
         {
             for (int i = 0; i < LstDots.Count; i++)
             {
-                LstDots[i].Blocked = Dots[LstDots[i].IndexDot].Blocked; 
+                LstDots[i].Blocked = Dots[LstDots[i].X, LstDots[i].Y].Blocked; 
             }
             return;
         }
@@ -432,7 +436,7 @@ namespace GameCore
         {
             get
             {
-                return Dots.Count;
+                return Dots.Length;
             }
         }
         public Dot this[int i, int j]//Индексатор возвращает элемент из массива по его индексу
@@ -443,11 +447,11 @@ namespace GameCore
                 if (j >= BoardHeight) j = BoardHeight - 1;
                 if (i < 0) i = 0;
                 if (j < 0) j = 0;
-                return Dots[IndexDot(i, j)];
+                return Dots[i, j];
             }
             set
             {
-                Dots[IndexDot(i, j)] = value;
+                Dots[i, j] = value;
             }
         }
         public string GetDotStatistic(Dot d)
@@ -473,22 +477,22 @@ namespace GameCore
             int ind = IndexDot(dot.X, dot.Y);
             if (DotIndexCheck(dot.X, dot.Y))
             {
-                Dots[ind].Own = dot.Own;
-                Dots[ind].Rating = dot.Rating;
-                Dots[ind].Tag = dot.Tag;
-                Dots[ind].NumberPattern = dot.NumberPattern;
-                if (dot.Own != 0) Dots[ind].IndexRelation = Dots[ind].IndexDot;
-                Dots[ind].Blocked = false;
+                Dots[dot.X, dot.Y].Own = dot.Own;
+                Dots[dot.X, dot.Y].Rating = dot.Rating;
+                Dots[dot.X, dot.Y].Tag = dot.Tag;
+                Dots[dot.X, dot.Y].NumberPattern = dot.NumberPattern;
+                if (dot.Own != 0) Dots[dot.X, dot.Y].IndexRelation = Dots[dot.X, dot.Y].IndexDot;
+                Dots[dot.X, dot.Y].Blocked = false;
                 if (dot.X == 0 | dot.X == (BoardWidth - 1) | dot.Y == 0 |
-                dot.Y == (BoardHeight - 1)) Dots[ind].Fixed = true;
-                Dots[ind].NeiborDots.Clear();
-                Dots[ind].NeiborDots.AddRange(NeighborDots(Dots[ind], Dots[ind].Own));
-                foreach (Dot d in Dots[ind].NeiborDots)
+                dot.Y == (BoardHeight - 1)) Dots[dot.X, dot.Y].Fixed = true;
+                Dots[dot.X, dot.Y].NeiborDots.Clear();
+                Dots[dot.X, dot.Y].NeiborDots.AddRange(NeighborDots(Dots[dot.X, dot.Y], Dots[dot.X, dot.Y].Own));
+                foreach (Dot d in Dots[dot.X, dot.Y].NeiborDots)
                 {
-                    d.NeiborDots.Add(Dots[ind]);
-                    d.IndexRelation = Dots[ind].IndexRelation;
+                    d.NeiborDots.Add(Dots[dot.X, dot.Y]);
+                    d.IndexRelation = Dots[dot.X, dot.Y].IndexRelation;
                 }
-                StackMoves.Add(Dots[ind]);
+                StackMoves.Add(Dots[dot.X, dot.Y]);
                 //AddNeibor(Dots[ind]);
                 //MakeIndexRelation();
             }
@@ -575,14 +579,14 @@ namespace GameCore
         {
             //Такой метод быстрее, чем через Distance
             List<Dot> list = new List<Dot>();
-            if (DotIndexCheck(dot.X - 1, dot.Y)) list.Add(Dots[IndexDot(dot.X - 1, dot.Y)]);
-            if (DotIndexCheck(dot.X + 1, dot.Y)) list.Add(Dots[IndexDot(dot.X + 1, dot.Y)]);
-            if (DotIndexCheck(dot.X, dot.Y + 1)) list.Add(Dots[IndexDot(dot.X, dot.Y + 1)]);
-            if (DotIndexCheck(dot.X, dot.Y - 1)) list.Add(Dots[IndexDot(dot.X, dot.Y - 1)]);
-            if (DotIndexCheck(dot.X + 1, dot.Y + 1)) list.Add(Dots[IndexDot(dot.X + 1, dot.Y + 1)]);
-            if (DotIndexCheck(dot.X - 1, dot.Y - 1)) list.Add(Dots[IndexDot(dot.X - 1, dot.Y - 1)]);
-            if (DotIndexCheck(dot.X - 1, dot.Y + 1)) list.Add(Dots[IndexDot(dot.X - 1, dot.Y + 1)]);
-            if (DotIndexCheck(dot.X + 1, dot.Y - 1)) list.Add(Dots[IndexDot(dot.X + 1, dot.Y - 1)]);
+            if (DotIndexCheck(dot.X - 1, dot.Y)) list.Add(Dots[dot.X - 1, dot.Y]);
+            if (DotIndexCheck(dot.X + 1, dot.Y)) list.Add(Dots[dot.X + 1, dot.Y]);
+            if (DotIndexCheck(dot.X, dot.Y + 1)) list.Add(Dots[dot.X, dot.Y + 1]);
+            if (DotIndexCheck(dot.X, dot.Y - 1)) list.Add(Dots[dot.X, dot.Y - 1]);
+            if (DotIndexCheck(dot.X + 1, dot.Y + 1)) list.Add(Dots[dot.X + 1, dot.Y + 1]);
+            if (DotIndexCheck(dot.X - 1, dot.Y - 1)) list.Add(Dots[dot.X - 1, dot.Y - 1]);
+            if (DotIndexCheck(dot.X - 1, dot.Y + 1)) list.Add(Dots[dot.X - 1, dot.Y + 1]);
+            if (DotIndexCheck(dot.X + 1, dot.Y - 1)) list.Add(Dots[dot.X + 1, dot.Y - 1]);
             return list;
         }
         public List<Dot> NeighborDots(Dot dot, int distance)
@@ -664,19 +668,6 @@ namespace GameCore
             }
             return minY;
         }
-        private int CountNeibourDots(StateOwn Owner)//количество точек определенного цвета возле пустой точки
-        {
-            var q = from Dot d in Dots
-                    where d.Blocked == false & d.Own == 0 &
-                    Dots[IndexDot(d.X + 1, d.Y - 1)].Blocked == false & Dots[IndexDot(d.X + 1, d.Y - 1)].Own == Owner &
-                    Dots[IndexDot(d.X + 1, d.Y + 1)].Blocked == false & Dots[IndexDot(d.X + 1, d.Y + 1)].Own == Owner
-                    | d.Own == 0 & Dots[IndexDot(d.X, d.Y - 1)].Blocked == false & Dots[IndexDot(d.X, d.Y - 1)].Own == Owner & Dots[IndexDot(d.X, d.Y + 1)].Blocked == false & Dots[IndexDot(d.X, d.Y + 1)].Own == Owner
-                    | d.Own == 0 & Dots[IndexDot(d.X - 1, d.Y - 1)].Blocked == false & Dots[IndexDot(d.X - 1, d.Y - 1)].Own == Owner & Dots[IndexDot(d.X - 1, d.Y + 1)].Blocked == false & Dots[IndexDot(d.X - 1, d.Y + 1)].Own == Owner
-                    | d.Own == 0 & Dots[IndexDot(d.X - 1, d.Y - 1)].Blocked == false & Dots[IndexDot(d.X - 1, d.Y - 1)].Own == Owner & Dots[IndexDot(d.X + 1, d.Y + 1)].Blocked == false & Dots[IndexDot(d.X + 1, d.Y + 1)].Own == Owner
-                    | d.Own == 0 & Dots[IndexDot(d.X - 1, d.Y + 1)].Blocked == false & Dots[IndexDot(d.X - 1, d.Y + 1)].Own == Owner & Dots[IndexDot(d.X + 1, d.Y - 1)].Blocked == false & Dots[IndexDot(d.X + 1, d.Y - 1)].Own == Owner
-                    select d;
-            return q.Count();
-        }
         /// <summary>
         /// Вычисляет индекс точки в списке по ее координатам
         /// </summary>
@@ -699,7 +690,11 @@ namespace GameCore
             return (x >= 0 && x < BoardWidth &&
             y >= 0 && y < BoardHeight);
         }
-
+        private bool DotIndexCheck(Dot dot)
+        {
+            return (dot.X >= 0 && dot.X < BoardWidth &&
+            dot.Y >= 0 && dot.Y < BoardHeight);
+        }
         /// <summary>
         /// список не занятых точек возле всех точек
         /// </summary>
@@ -819,34 +814,34 @@ namespace GameCore
         /// отмена хода
         /// </summary>
         /// <param name="dot"></param>
-        public void UndoMove1(Dot dot, bool full = false)
-        {
-            StackMoves.Remove(dot);
-            List<Dot> StackMoveCopy = new List<Dot>();//создаем рабочуюю копию стека
-            foreach (Dot d in StackMoves) StackMoveCopy.Add(GetDotCopy(d));
-            StackMoves.Clear();//очищаем стек, в MakeMove он заполняется заново
-                               //сброс игрового поля
-            for (int i = 0; i < Dots.Count; i++)
-            {
-                Dots[i].Restore();
-            }
-            //перестраиваем поле заново
-            for (int i = 0; i < StackMoveCopy.Count; i++)
-            {
-                MakeMove(StackMoveCopy[i], StackMoveCopy[i].Own);
-            }
-            if (full)//если полная отмена
-            {
-                ListMoves.Clear();
-                ListMoves.AddRange(StackMoves);
-                LinkDots();
-            }
-        }
+        //public void UndoMove1(Dot dot, bool full = false)
+        //{
+            //StackMoves.Remove(dot);
+            //List<Dot> StackMoveCopy = new List<Dot>();//создаем рабочуюю копию стека
+            //foreach (Dot d in StackMoves) StackMoveCopy.Add(GetDotCopy(d));
+            //StackMoves.Clear();//очищаем стек, в MakeMove он заполняется заново
+            //                   //сброс игрового поля
+            //for (int i = 0; i < Dots.Count; i++)
+            //{
+            //    Dots[i].Restore();
+            //}
+            ////перестраиваем поле заново
+            //for (int i = 0; i < StackMoveCopy.Count; i++)
+            //{
+            //    MakeMove(StackMoveCopy[i], StackMoveCopy[i].Own);
+            //}
+            //if (full)//если полная отмена
+            //{
+            //    ListMoves.Clear();
+            //    ListMoves.AddRange(StackMoves);
+            //    LinkDots();
+            //}
+        //}
         public void UndoMove(Dot dot, bool full = false)//отмена хода
         {
             int ind = IndexDot(dot.X, dot.Y);
-            StackMoves.Remove(Dots[ind]);
-            Dots[ind].Restore();
+            StackMoves.Remove(Dots[dot.X, dot.Y]);
+            Dots[dot.X, dot.Y].Restore();
             foreach (Dot d in StackMoves)
             {
                 d.BlokingDots.Clear();
@@ -863,13 +858,9 @@ namespace GameCore
         public bool CheckValidMove(Dot CheckDotForMove)
         {
             if (CheckDotForMove is null) return false;
-
-            Dot d = Dots.Find(x => x.X == CheckDotForMove.X && x.Y == CheckDotForMove.Y);
-            if (d is null)
-            {
-                return false;
-            }
-            return d.Blocked == false && d.Own == 0;
+            if (!DotIndexCheck(CheckDotForMove)) return false;
+            return Dots[CheckDotForMove.X, CheckDotForMove.Y].Blocked == false 
+                && Dots[CheckDotForMove.X, CheckDotForMove.Y].Own == 0;
         }
         private int count_in_region;
         private int count_blocked_dots;
@@ -1110,8 +1101,14 @@ this[dot.X, dot.Y -1]};
         /// <param name="Owner"></param>
         /// <param name="Blocked"></param>
         /// <returns></returns>
-        private List<Dot> GetDots(StateOwn Owner, bool Blocked = false) =>
-        Dots.Where(d => d.Blocked == Blocked && d.Own == Owner).ToList();
+        private List<Dot> GetDots(StateOwn Owner, bool Blocked = false)
+        {
+            return (from Dot d in Dots
+                    where d.Blocked == Blocked && d.Own == Owner
+                    select d).ToList();
+        }
+
+
         /// <summary>
         /// Получить все незаблокированные точки, или все заблокированные занятые или нет игроками
         /// </summary>
@@ -1119,21 +1116,21 @@ this[dot.X, dot.Y -1]};
         /// <returns></returns>
         private List<Dot> GetDots(bool NoEmpty, bool Blocked = false)
         {
-            if (NoEmpty) return Dots.Where(d => d.Blocked == Blocked && d.Own != 0).ToList();
-            else return Dots.Where(d => d.Blocked == Blocked).ToList();
+            if (NoEmpty)
+            {
+                return (from Dot d in Dots
+                        where d.Blocked == Blocked && d.Own != 0
+                        select d).ToList();
+            } 
+            else return (from Dot d in Dots
+                         where d.Blocked == Blocked
+                         select d).ToList();
         }
 
-        /// <summary>
-        /// Получить все незаблокированные точки, или все заблокированные
-        /// </summary>
-        /// <param name="Blocked"></param>
-        /// <returns></returns>
-        private List<Dot> GetDots(bool Blocked = false) =>
-        Dots.Where(d => d.Blocked == Blocked).ToList();
-        private List<Dot> CommonDot2(Dot d1, Dot d2)
-        {
-            return NeighborDots(d1).Intersect(NeighborDots(d2), new DotEq()).ToList();
-        }
+        //private List<Dot> CommonDot2(Dot d1, Dot d2)
+        //{
+        //    return NeighborDots(d1).Intersect(NeighborDots(d2), new DotEq()).ToList();
+        //}
 
         //==============================================================================================
         /// <summary>
@@ -1273,10 +1270,13 @@ this[dot.X, dot.Y -1]};
         {
             GameDots GD = new GameDots(BoardWidth, BoardHeight);
             Dot dt;
-            for (int i = 0; i < Dots.Count; i++)
+            for (int i = 0; i < BoardWidth; i++)
             {
-                dt = GetDotCopy(Dots[i]);
-                GD[Dots[i].X, Dots[i].Y] = dt;
+                for (int j = 0; j < BoardHeight; j++)
+                {
+                    dt = GetDotCopy(this[i, j]);
+                    GD[i, j] = dt;
+                }
             }
             for (int i = 0; i < LstMoves.Count; i++)
             {
@@ -2421,7 +2421,7 @@ this[dot.X, dot.Y -1]};
         public bool MoveNext()
         {
             position++;
-            return (position < Dots.Count);
+            return position < Dots.Length;
         }
         //IEnumerable
         public void Reset()
@@ -2538,8 +2538,26 @@ this[dot.X, dot.Y -1]};
             return 0;
         }
 
-        public object Current => Dots[position];
-
+        //IEnumerator and IEnumerable require these methods.
+        //public IEnumerator GetEnumerator()
+        //{
+        //    position = -1;
+        //    return this;
+        //}
+        ////IEnumerator
+        //public bool MoveNext()
+        //{
+        //    position++;
+        //    return (position < Dots.Length);
+        //}
+        ////IEnumerable
+        //public void Reset()
+        //{ position = 0; }
+        //IEnumerable
+        public object Current
+        {
+            get { return Dots[position / BoardWidth, position % BoardHeight]; }
+        }
         public List<Dot> Lst_blocked_dots { get; set; } = new List<Dot>();
         public List<Dot> Lst_in_region_dots { get; set; } = new List<Dot>();
         public List<Dot> Lst_moves { get; set; } = new List<Dot>();
