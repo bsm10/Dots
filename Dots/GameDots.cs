@@ -575,7 +575,7 @@ namespace GameCore
         //    }
         //    return list;
         //}
-        public List<Dot> NeighborDots(Dot dot)
+        public List<Dot> NeighborDots(Dot dot, bool blocked = false)
         {
             //Такой метод быстрее, чем через Distance
             List<Dot> list = new List<Dot>();
@@ -610,7 +610,6 @@ namespace GameCore
 
         private List<Dot> NeighborDots(Dot dot, StateOwn Own)
         {
-            //Такой метод быстрее, чем через Distance
             return NeighborDots(dot).Where(dt => dt.Own == Own).ToList();
         }
 
@@ -1289,7 +1288,6 @@ this[dot.X, dot.Y -1]};
 
         private List<Dot> CheckPattern(StateOwn Owner, StateOwn Enemy)
         {
-            object sync = new Object();
             //StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
             List<Dot> ld = new List<Dot>();
             IEnumerable<Dot> get_non_blocked = from Dot d in this where d.Blocked == false select d;//получить коллекцию незаблокированных точек
@@ -1310,8 +1308,8 @@ this[dot.X, dot.Y -1]};
             // -  +m
             pat = from Dot move in get_non_blocked
                   where move.Own == StateOwn.Empty
-                  let dotsOwner = NeighborDots(move, Owner)
-                  let dotsEnemy = NeighborDotsSNWE(move, Enemy)
+                  let dotsOwner = NeighborDots(move, Owner).Where(d=>!d.Blocked).ToList()
+                  let dotsEnemy = NeighborDotsSNWE(move, Enemy).Where(d => !d.Blocked).ToList()
                   where dotsEnemy.Count == 2 && dotsOwner.Count == 1
                   && Distance(dotsEnemy[0], dotsEnemy[1]) == 1.4f
                   && Distance(dotsOwner[0], dotsEnemy[0]) == 1f
@@ -1476,20 +1474,26 @@ this[dot.X, dot.Y -1]};
 
             return ld;
         }
-
+        /// <summary>
+        /// Проверяет список точек->не делается ли ход в капкан, или туда, где на следующем шаходу окружение.
+        /// Отбрасываем плохие точки
+        /// </summary>
+        /// <param name="Owner"></param>
+        /// <param name="Enemy"></param>
+        /// <param name="ld">список проверяемых точек</param>
         private void CheckPatternDot(StateOwn Owner, StateOwn Enemy, List<Dot> ld)
         {
             GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
-            //проверка, не делается ли ход в капкан, и отбрасываем плохие точки
             for (int i = 0; i < ld.Count; i++)
             {
                 Dot d = ld[i];
                 //делаем ход, чтобы проверить, замкнется регион или нет
                 GameDots_Copy.MakeMove(d, Owner);
-                if (GameDots_Copy.Goal.Player == Enemy || GameDots_Copy.CheckMove(Enemy) != null)
+                if (GameDots_Copy.Goal.Player == Enemy || GameDots_Copy.CheckMove(Enemy) != null || GameDots_Copy.CheckMove(Enemy)!= null)
                 {
                     ld.Remove(d);
                 }
+                
                 GameDots_Copy = GetGameDotsCopy(StackMoves);
             }
         }
@@ -1989,8 +1993,10 @@ this[dot.X, dot.Y -1]};
                 {
                     return MovesAnaliz(moves, BlockedPlayer - BlockedEnemy);
                 }
-                
-                
+            }
+            else if(moves.Count>0)
+            {
+                return moves;
             }
             #endregion Проверка
             #endregion CheckMove
@@ -2069,6 +2075,7 @@ this[dot.X, dot.Y -1]};
             StopWatch($"CheckPattern_vilochka, CheckPatternVilka1x1 - {sW2.Elapsed.Milliseconds.ToString()}", progress);
             if (moves.Count > 0)
             {
+                CheckPatternDot(StateOwn.Computer, StateOwn.Human, moves);
                 return moves;
             }
             #endregion
@@ -2093,7 +2100,11 @@ this[dot.X, dot.Y -1]};
             } // vilka2x2 Enemy
             ); //close parallel.invoke
             StopWatch($"CheckPatternVilka2x2 {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
-            if (moves.Count > 0) return moves;
+            if (moves.Count > 0)
+            {
+                CheckPatternDot(StateOwn.Computer, StateOwn.Human, moves);
+                return moves;
+            }
             #endregion
             #region CheckPattern
             //moves.AddRange(CheckPattern(Player));
@@ -2225,12 +2236,15 @@ this[dot.X, dot.Y -1]};
         /// <returns></returns>
         private StateOwn Play(StateOwn Player)
         {
+            
             StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
 
             List<Dot> lst_best_move = new List<Dot>();//сюда заносим лучшие ходы
             if (recursion_depth == 1) counter_moves = 1;
             recursion_depth++;
+            
             if (recursion_depth > MAX_RECURSION) return StateOwn.Empty;
+            DebugInfo.lstDBG1.Add($"*****{Player}, recursion_depth: {recursion_depth}, counter_moves: {counter_moves}******");
             lst_best_move = BestMove(Player, progress);
             foreach (Dot d in lst_best_move)
             {
@@ -2263,6 +2277,7 @@ this[dot.X, dot.Y -1]};
                 {
                     Dot move = lst_best_move[i];
                     progress_counter++;
+                    //StartWatch($"*****Play - {Player}, recursion_depth: {recursion_depth}, counter_moves: {counter_moves} ******", progress);
                     if (progress != null) progress.Report("Wait..." + progress_counter * 100 / lst_best_move.Count + "%");
                     #region ходим в проверяемые точки
                     if (counter_moves > MAX_COUNTMOVES) break;
