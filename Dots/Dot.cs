@@ -317,12 +317,6 @@ namespace DotsGame
 
             public int X { get; set; }
             public int Y { get; set; }
-
-
-            //public bool ValidMove
-            //{
-            //    get { return Blocked == false && Own == 0; }
-            //}
         }
 
         public class Point
