@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using static DotsGame.LinksAndDots.Dot;
+using static GameCore.GameDots.BoardMoves;
 
 namespace DotsGame
 {
@@ -105,6 +106,77 @@ namespace GameCore
         private const StateOwn COMPUTER = StateOwn.Computer;
         private const StateOwn NONE = StateOwn.Empty;
         private const StateOwn HUMAN = StateOwn.Human;
+        public class BoardMoves
+        {
+            //private BoardState s_currentBoardState;
+            public int NumberMove
+            {
+                get
+                {
+                    return BoardStates.Count;
+                }
+            }
+            //public BoardState CurrentBoardState
+            //{
+            //    get => s_currentBoardState;
+            //    set
+            //    {
+            //        s_currentBoardState = value;
+            //        BoardStates.Add(s_currentBoardState);
+                    
+            //    }
+            //}
+            public List<BoardState> BoardStates { get; } = new List<BoardState>();
+            public class BoardState
+            {
+                public BoardState(Dot[,] boardState)
+                {
+                    Board = boardState;
+                }
+                private Dot[,] boardState;// = new Dot[,];
+                public int CountHumanDots => (from Dot d in Board
+                                              where d.Own == StateOwn.Human
+                                              select d).Count();
+                public int CountComputerDots => (from Dot d in Board
+                                                 where d.Own == StateOwn.Computer
+                                              select d).Count();
+                public int CountDots => (from Dot d in Board
+                                         where d.Own != 0
+                                                 select d).Count();
+
+                public Dot[,] Board { get => boardState; set => boardState = value; }
+
+                public override string ToString()
+                {
+                    return $"CountDots: {CountDots}; Human: {CountHumanDots}; Computer: {CountComputerDots}";
+                }
+            }
+            public BoardState BoardLastState
+            {
+                get
+                {
+                    return BoardStates.Last();
+                }
+
+            }
+            public BoardState BoardPreviosState
+            {
+                get
+                {
+                    int i = BoardStates.IndexOf(BoardStates.Last()) - 1;
+                    if(i < 0)
+                    {
+                        return BoardStates[0];
+                    }
+                    else
+                    {
+                        return BoardStates[i];
+                    }
+                    
+                }
+
+            }
+        }
 
         public enum StateMove
         {
@@ -174,28 +246,6 @@ namespace GameCore
 
             return d;
         }
-
-        //private GameDots CopyDots
-        //{
-        //    get
-        //    {
-        //        GameDots ad = new GameDots(BoardWidth, BoardHeight);
-        //        for (int i = 0; i < BoardWidth; i++)
-        //        {
-        //            for(int j = 0; j < BoardHeight; j++)
-        //            {
-        //                ad[i,j].Blocked = Dots[i,j].Blocked;
-        //                ad[i, j].Fixed = Dots[i, j].Fixed;
-        //                ad[i, j].IndexDot = Dots[i, j].IndexDot;
-        //                ad[i, j].Own = Dots[i, j].Own;
-        //                //ad[i, j].X = Dots[i].X;
-        //                //ad[i, j].Y = Dots[i].Y;
-        //            }
-        //        }
-        //        return ad;
-        //    }
-        //}
-
         public void LoadGame(List<Dot> ListDotForLoad)
         {
             foreach (Dot d in ListDotForLoad)
@@ -245,10 +295,13 @@ namespace GameCore
             StackMoves.OnAdd += new EventHandler<ListDotsEventArgs>(StackMoves_OnAdd);
             StackMoves.OnRemove += new EventHandler<ListDotsEventArgs>(StackMoves_OnRemove);
 
+            OnMove += new EventHandler<BoardMoveEventArgs>(Board_OnMove);
+
             ListLinks = new List<Link>();
             //ListMoves = new List<Dot>();
             dots_in_region = new List<Dot>();
             Goal = new GoalPlayer();
+            Moves = new BoardMoves();
         }
 
         private void StackMoves_OnRemove(object sender, ListDotsEventArgs e)
@@ -261,10 +314,6 @@ namespace GameCore
             //MakeIndexRelation();
         }
 
-        //public GameDots(GameDots gameDots_Copy)
-        //{
-        //    this.gameDots_Copy = gameDots_Copy;
-        //}
 
         public void ListMoves_OnAdd(object sender, ListDotsEventArgs e)
         {
@@ -472,6 +521,43 @@ namespace GameCore
             "X = " + this[d.X, d.Y].X.ToString() + "; Y = " + this[d.X, d.Y].Y.ToString();
             return dotstatistic;
         }
+        public event EventHandler<BoardMoveEventArgs> OnMove;
+        public event EventHandler<BoardMoveEventArgs> OnUndoMove;
+        public class BoardMoveEventArgs : EventArgs
+        {
+            public Dot Dot { get; set; }
+        }
+        private void Board_OnMove(object sender, BoardMoveEventArgs e)
+        {
+            StackMoves.Add(e.Dot);
+            Moves.BoardStates.Add(new BoardState(GetDotsArrayCopy()));
+        }
+
+        private Dot[,] GetDotsArrayCopy()
+        {
+            Dot[,] temp = new Dot[BoardWidth, BoardHeight];
+            for (int i = 0; i < BoardWidth; i++)
+            {
+                for (int j = 0; j < BoardHeight; j++)
+                {
+                    temp[i, j] = GetDotCopy(Dots[i, j]);
+                }
+            }
+            return temp;
+        }
+        private Dot[,] GetDotsArrayCopy(Dot[,] DotsArray)
+        {
+            Dot[,] temp = new Dot[BoardWidth, BoardHeight];
+            for (int i = 0; i < BoardWidth; i++)
+            {
+                for (int j = 0; j < BoardHeight; j++)
+                {
+                    temp[i, j] = GetDotCopy(DotsArray[i, j]);
+                }
+            }
+            return temp;
+        }
+
         private void Move(Dot dot)//добавляет точку в массив
         {
             int ind = IndexDot(dot.X, dot.Y);
@@ -492,9 +578,12 @@ namespace GameCore
                     d.NeiborDots.Add(Dots[dot.X, dot.Y]);
                     d.IndexRelation = Dots[dot.X, dot.Y].IndexRelation;
                 }
-                StackMoves.Add(Dots[dot.X, dot.Y]);
-                //AddNeibor(Dots[ind]);
-                //MakeIndexRelation();
+                //StackMoves.Add(Dots[dot.X, dot.Y]);
+
+                BoardMoveEventArgs args = new BoardMoveEventArgs();
+                args.Dot = Dots[dot.X, dot.Y];
+                OnMove?.Invoke(this, args);
+
             }
         }
 
@@ -765,6 +854,7 @@ namespace GameCore
             ListLinks.Clear();
             ListMoves.Clear();
             StackMoves.Clear();
+            Moves.BoardStates.Clear();
         }
 
         private int Counter = 0;
@@ -813,47 +903,45 @@ namespace GameCore
         /// отмена хода
         /// </summary>
         /// <param name="dot"></param>
-        //public void UndoMove1(Dot dot, bool full = false)
-        //{
-            //StackMoves.Remove(dot);
-            //List<Dot> StackMoveCopy = new List<Dot>();//создаем рабочуюю копию стека
-            //foreach (Dot d in StackMoves) StackMoveCopy.Add(GetDotCopy(d));
-            //StackMoves.Clear();//очищаем стек, в MakeMove он заполняется заново
-            //                   //сброс игрового поля
-            //for (int i = 0; i < Dots.Count; i++)
-            //{
-            //    Dots[i].Restore();
-            //}
-            ////перестраиваем поле заново
-            //for (int i = 0; i < StackMoveCopy.Count; i++)
-            //{
-            //    MakeMove(StackMoveCopy[i], StackMoveCopy[i].Own);
-            //}
-            //if (full)//если полная отмена
-            //{
-            //    ListMoves.Clear();
-            //    ListMoves.AddRange(StackMoves);
-            //    LinkDots();
-            //}
-        //}
-        public void UndoMove(Dot dot, bool full = false)//отмена хода
+        public void UndoMove(bool full = false)
         {
-            int ind = IndexDot(dot.X, dot.Y);
-            StackMoves.Remove(Dots[dot.X, dot.Y]);
-            Dots[dot.X, dot.Y].Restore();
-            foreach (Dot d in StackMoves)
+            StackMoves.Remove(StackMoves.LastOrDefault());
+            Moves.BoardStates.Remove(Moves.BoardStates.Last());
+            Dots = GetDotsArrayCopy(Moves.BoardStates.Last().Board);
+            for (int i = 0; i < StackMoves.Count; i++)
             {
-                d.BlokingDots.Clear();
-                d.Blocked = false;
+                StackMoves[i] = Dots[StackMoves[i].X, StackMoves[i].Y];
             }
-            count_blocked_dots = CheckBlocked();
-            if(full)
+            if (full)
             {
                 ListMoves.Clear();
                 ListMoves.AddRange(StackMoves);
                 LinkDots();
             }
         }
+
+        public void UndoMoveDebug(Dot dot)
+        {
+            StackMoves.Remove(dot);
+            List<Dot> StackMoveCopy = new List<Dot>();//создаем рабочуюю копию стека
+            foreach (Dot d in StackMoves) StackMoveCopy.Add(GetDotCopy(d));
+            StackMoves.Clear();//очищаем стек, в MakeMove он заполняется заново
+                               //сброс игрового поля
+            foreach (Dot d in Dots)
+            {
+                d.Restore();
+            }
+            //перестраиваем поле заново
+            for (int i = 0; i < StackMoveCopy.Count; i++)
+            {
+                MakeMove(StackMoveCopy[i], StackMoveCopy[i].Own);
+            }
+            ListMoves.Clear();
+            ListMoves.AddRange(StackMoves);
+            LinkDots();
+        }
+
+
         public bool CheckValidMove(Dot CheckDotForMove)
         {
             if (CheckDotForMove is null) return false;
@@ -1056,7 +1144,7 @@ this[dot.X, dot.Y -1]};
             StateOwn pl = Player == StateOwn.Computer ? StateOwn.Human : StateOwn.Computer;
             if (Goal.Player == pl)// первое условие -ход в уже окруженный регион,
             {
-                UndoMove(dot);
+                UndoMove();
                 return true; // да будет окружена
             }
             //будет ли окружена на следующем ходу
@@ -1064,12 +1152,12 @@ this[dot.X, dot.Y -1]};
             if (dotEnemy != null)
             {
                 res = MakeMove(dotEnemy, pl);
-                UndoMove(dotEnemy);
-                UndoMove(dot);
+                UndoMove();
+                UndoMove();
                 return true; // да будет окружена
             }
             //нет не будет
-            UndoMove(dot);
+            UndoMove();
             return false;
         }
         //===============================================================================================================
@@ -1248,17 +1336,17 @@ this[dot.X, dot.Y -1]};
                 Dot dt = GameDots_Copy.CheckMove(Owner); // проверка чтобы не попасть в капкан
                 if (dt != null)
                 {
-                    GameDots_Copy.UndoMove(d);
+                    GameDots_Copy.UndoMove();
                     continue;
                 }
                 dot_ptn = GameDots_Copy.CheckPattern_vilochka(d.Own);
                 //-----------------------------------
                 if (dot_ptn != null)
                 {
-                    GameDots_Copy.UndoMove(d);
+                    GameDots_Copy.UndoMove();
                     return d;
                 }
-                GameDots_Copy.UndoMove(d);
+                GameDots_Copy.UndoMove();
 
             }
             GameDots_Copy = null;
@@ -1359,121 +1447,6 @@ this[dot.X, dot.Y -1]};
             return ld;
         }
 
-//медленно!
-        private List<Dot> CheckPattern1(StateOwn Owner, StateOwn Enemy)
-        {
-            object sync = new Object();
-            //StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
-            List<Dot> ld = new List<Dot>();
-            IEnumerable<Dot> get_non_blocked = from Dot d in this where d.Blocked == false select d;//получить коллекцию незаблокированных точек
-            IEnumerable<Dot> pat;
-            Parallel.Invoke(
-            () =>
-            {
-                lock (sync)
-                {
-                    //
-                    // -  -
-                    // +  +m
-                    pat = from Dot move in GetDots(StateOwn.Empty)
-                          let lst_tri = GetSimpleTriangles(move)
-                          from Triangle t in lst_tri
-                          where move == t.Dot1_45
-                          && t.Dot2_45.Own == Enemy
-                          && t.Dot_90.Own == Owner
-                          ||
-                          move == t.Dot1_45
-                          && t.Dot2_45.Own == Owner
-                          && t.Dot_90.Own == Enemy
-
-                          select new Dot(move.X, move.Y, NumberPattern: 1, Rating: 6, Tag: $"CheckPattern({t.Dot2_45.Own})");
-                    ld.AddRange(pat.Distinct(new DotEqbyRating()));
-                }
-            }, // pattern 1
-            () =>
-            {
-                lock (sync)
-                {
-                    //********************************************************************
-                    // +  -
-                    // -  +m
-                    pat = from Dot move in get_non_blocked
-                          where move.Own == StateOwn.Empty
-                          let dotsOwner = NeighborDots(move, Owner)
-                          let dotsEnemy = NeighborDotsSNWE(move, Enemy)
-                          where dotsEnemy.Count == 2 && dotsOwner.Count == 1
-                          && Distance(dotsEnemy[0], dotsEnemy[1]) == 1.4f
-                          && Distance(dotsOwner[0], dotsEnemy[0]) == 1f
-                          && Distance(dotsOwner[0], dotsEnemy[1]) == 1f
-
-                          select new Dot(move.X, move.Y, NumberPattern: 2, Rating: 4, Tag: $"CheckPattern({Owner})");
-                    ld.AddRange(pat.Distinct(new DotEqbyRating()));
-                }
-            }, // pattern 2
-            () =>
-            {
-                lock (sync)
-                {
-                    //***************************************************************************************************
-                    // +  +m  + паттерн на соединение двух точек без вражеской точки
-                    // или
-                    //
-                    // -  +м или разрыв вражеской связи
-                    // +  +   -
-                    pat = from Dot move in get_non_blocked
-                          where move.Own == StateOwn.Empty
-                          let dotsOwner = NeighborDots(move, Owner).Where(dt => !dt.Blocked).ToList()
-                          let dotsEnemy = NeighborDots(move, Enemy).Where(dt => !dt.Blocked).ToList()
-                          where dotsEnemy.Count == 2 && Distance(dotsEnemy[0], dotsEnemy[1]) >= 2
-                          && dotsOwner.Count > 0 && Distance(dotsOwner[0], move) <= 1.4f
-                          select new Dot(move.X, move.Y, NumberPattern: 3, Rating: 2, Tag: $"CheckPattern({Owner})");
-                    ld.AddRange(pat.Distinct(new DotEqbyRating()));
-                }
-            },// pattern 3
-            () =>
-            {
-                lock (sync)
-                {
-                    //******************************************************************************************
-                    // Паттерн на создание связи с точками через 2 клетки
-                    // +  -  +   или   +  -
-                    //   м+              м+  +
-                    pat = from Dot move in get_non_blocked
-                          where move.Own == StateOwn.Empty
-                          let dotsOwner = NeighborDots(move, Owner).Where(dt => !dt.Blocked).ToList()
-                          let dotsEnemy = NeighborDotsSNWE(move, Enemy).Where(dt => !dt.Blocked).ToList()
-                          where dotsEnemy.Count == 1 && dotsOwner.Count == 2
-                          && Distance(dotsOwner[0], dotsOwner[1]) >= 2f
-                          select new Dot(move.X, move.Y, NumberPattern: 4, Rating: 2, Tag: $"CheckPattern({Owner})");
-                    ld.AddRange(pat.Distinct(new DotEqbyRating()));
-
-                }
-            },// pattern 4
-            () =>
-            {
-                lock (sync)
-                {
-                    //*******************************************************************************************
-                    //   +м
-                    //   -  +
-                    //   +
-                    pat = from Dot dotEnemy in get_non_blocked
-                          where dotEnemy.Own == Enemy
-                          let dotsOwner = NeighborDotsSNWE(dotEnemy, Owner).Where(dt => !dt.Blocked).ToList()
-                          let dotsEmpty = NeighborDotsSNWE(dotEnemy, 0).Where(dt => !dt.Blocked).ToList()
-                          where dotsEmpty.Count == 2 && dotsOwner.Count == 2
-                          select new Dot(dotsEmpty[0].X, dotsEmpty[0].Y, NumberPattern: 5, Rating: 2, Tag: $"CheckPattern({Owner})");
-                    ld.AddRange(pat.Distinct(new DotEqbyRating()));
-
-                }
-            }// pattern 5
-
-        ); //close parallel.invoke
-
-            CheckPatternDot(Owner, Enemy, ld);
-
-            return ld;
-        }
         /// <summary>
         /// Проверяет список точек->не делается ли ход в капкан, или туда, где на следующем шаходу окружение.
         /// Отбрасываем плохие точки
@@ -1489,7 +1462,8 @@ this[dot.X, dot.Y -1]};
                 Dot d = ld[i];
                 //делаем ход, чтобы проверить, замкнется регион или нет
                 GameDots_Copy.MakeMove(d, Owner);
-                if (GameDots_Copy.Goal.Player == Enemy || GameDots_Copy.CheckMove(Enemy) != null || GameDots_Copy.CheckMove(Enemy)!= null)
+                if (GameDots_Copy.Goal.Player == Enemy || GameDots_Copy.CheckMove(Enemy) != null 
+                    || GameDots_Copy.CheckMove(Enemy)!= null || GameDots_Copy.CheckPatternVilka1x1(Enemy) != null)
                 {
                     ld.Remove(d);
                 }
@@ -1887,12 +1861,13 @@ this[dot.X, dot.Y -1]};
             {
                 IEnumerable<Dot> q = from Dot d in GetDots(StateOwn.Computer)
                         from emptydot in NeighborDotsSNWE(d, StateOwn.Empty)
+                        where !emptydot.Blocked
                         select emptydot;
                 if (q.Count() == 0)
                 {
                     var random = new Random(DateTime.Now.Millisecond);
                     q = from Dot d in Dots//любая точка
-                        where d.Blocked == false & d.Own == StateOwn.Empty
+                        where !d.Blocked & d.Own == StateOwn.Empty
                         orderby random.Next()
                         select d;
                 }
@@ -2222,7 +2197,7 @@ this[dot.X, dot.Y -1]};
         int res_last_move; //хранит результат хода
                            //int recursion_depth;
         const int MAX_RECURSION = 3;
-        const int MAX_COUNTMOVES = 5;
+        const int MAX_COUNTMOVES = 10;
         int recursion_depth;
         Dot tempmove;
         private GameDots gameDots_Copy;
@@ -2236,13 +2211,10 @@ this[dot.X, dot.Y -1]};
         /// <returns></returns>
         private StateOwn Play(StateOwn Player)
         {
-            
             StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
-
             List<Dot> lst_best_move = new List<Dot>();//сюда заносим лучшие ходы
             if (recursion_depth == 1) counter_moves = 1;
             recursion_depth++;
-            
             if (recursion_depth > MAX_RECURSION) return StateOwn.Empty;
             DebugInfo.lstDBG1.Add($"*****{Player}, recursion_depth: {recursion_depth}, counter_moves: {counter_moves}******");
             lst_best_move = BestMove(Player, progress);
@@ -2250,15 +2222,14 @@ this[dot.X, dot.Y -1]};
             {
                 d.Rating += counter_moves;
             }
-
             tempmove = lst_best_move.Where(dt => (dt.NumberPattern == 777 & dt.Rating == lst_best_move.Min(d => d.Rating))
             || (dt.NumberPattern == 666 & dt.Rating == lst_best_move.Min(d => d.Rating))).ElementAtOrDefault(0);
-
             //если есть паттерн на окружение противника тоже устанавливается бест мув
             if (tempmove != null)
             {
                 Lst_branch.Add(tempmove);
-                return tempmove.Own;//Player;
+                DebugInfo.lstDBG1.Add($"Ход {tempmove.Own} на {tempmove}");
+                return tempmove.Own;
             }
             //если есть паттерн на свое окружение устанавливается бест мув
             tempmove = lst_best_move.Where(dt => dt.NumberPattern == 666).FirstOrDefault();
@@ -2266,7 +2237,8 @@ this[dot.X, dot.Y -1]};
             {
                 Lst_branch.Add(tempmove);
                 Lst_branch.Last().Rating = tempmove.Rating + counter_moves;
-                return Enemy;
+                DebugInfo.lstDBG1.Add($"Ход {tempmove.Own} на {tempmove}");
+                return tempmove.Own;
             }
 
             if (lst_best_move.Count > 0)
@@ -2278,14 +2250,14 @@ this[dot.X, dot.Y -1]};
                     Dot move = lst_best_move[i];
                     progress_counter++;
                     //StartWatch($"*****Play - {Player}, recursion_depth: {recursion_depth}, counter_moves: {counter_moves} ******", progress);
-                    if (progress != null) progress.Report("Wait..." + progress_counter * 100 / lst_best_move.Count + "%");
+                    if (progress != null && recursion_depth == 1) progress.Report("Wait..." + progress_counter * 100 / lst_best_move.Count + "%");
                     #region ходим в проверяемые точки
                     if (counter_moves > MAX_COUNTMOVES) break;
                     //**************делаем ход***********************************
+                    DebugInfo.lstDBG1.Add($"Ход {Player} на {move}");
                     res_last_move = MakeMove(move, Player);
                     Lst_moves.Add(move);
                     counter_moves++;
-
                     #region проверка на окружение
 
                     if (Goal.Player == Player)
@@ -2293,7 +2265,7 @@ this[dot.X, dot.Y -1]};
                         Dot dt_move = Lst_moves.First();
                         dt_move.Rating = counter_moves;
                         Lst_branch.Add(dt_move);
-                        UndoMove(move);
+                        UndoMove();
                         //Win_player = 0;
                         continue;
                         //return StateOwn.Computer;
@@ -2301,7 +2273,7 @@ this[dot.X, dot.Y -1]};
                     //если ход в заведомо окруженный регион - пропускаем такой ход
                     if (Goal.Player == Enemy)
                     {
-                        UndoMove(move);
+                        UndoMove();
 
                         //Win_player = 0;
                         move.Rating = -1;
@@ -2317,18 +2289,15 @@ this[dot.X, dot.Y -1]};
 #endif
                     #endregion
                     //теперь ходит другой игрок ===========================================================================
-
                     StateOwn result = Play(Enemy);
-
                     recursion_depth--;
-
                     if (result == 0)
                     {
                         Lst_moves.Remove(move);
 #if DEBUG
                         DebugInfo.lstDBG1.Remove(move.ToString());
 #endif
-                        UndoMove(move);
+                        UndoMove();
                         continue;
                     }
                     else if (result == Player)
@@ -2343,7 +2312,7 @@ this[dot.X, dot.Y -1]};
 #if DEBUG
                         DebugInfo.lstDBG1.Remove(move.ToString());
 #endif
-                        UndoMove(move);
+                        UndoMove();
                         return result;
                     }
                     else if (result == Enemy)
@@ -2358,18 +2327,15 @@ this[dot.X, dot.Y -1]};
                         DebugInfo.lstDBG1.Remove(move.ToString());
 #endif
 
-                        UndoMove(move);
+                        UndoMove();
                         return result;
                     }
-
-
                     #region Debug
 #if DEBUG
                     //remove from list
                     if (DebugInfo.lstDBG1.Count > 0) DebugInfo.lstDBG1.RemoveAt(DebugInfo.lstDBG1.Count - 1);
 #endif
                     #endregion
-
                 }
                 #endregion
             }
@@ -2578,6 +2544,8 @@ this[dot.X, dot.Y -1]};
         public List<Dot> Lst_moves { get; set; } = new List<Dot>();
         public List<Dot> Lst_branch { get; set; } = new List<Dot>();
         public GoalPlayer Goal { get; set; }
+
+        public BoardMoves Moves;
 
         /// <summary>
         /// Класс, который содержит информацию про игрока, который в результате своего хода окружил точки противника
