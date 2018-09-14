@@ -148,7 +148,7 @@ namespace GameCore
                                          /// <summary>
                                          /// Основной список - вся доска
                                          /// </summary>
-        public List<Dot> Dots1 { get; set; }
+        //public List<Dot> Dots1 { get; set; }
         public Dot[,] Dots { get; set; }
         /// <summary>
         /// Показывает, чей ход
