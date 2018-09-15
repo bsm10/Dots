@@ -217,15 +217,6 @@ namespace DotsGame
                 this.Tag = Tag;
                 //IndexRelation = IndexDot;
             }
-            //public Dot(Point p)
-            //{
-            //    X = p.X;
-            //    Y = p.Y;
-            //    BlokingDots = new List<Dot>();
-            //    Own = StateOwn.Empty;
-            //    NumberPattern = 0;
-            //    Rating = Rating;
-            //}
             public Dot(Dot dot)
             {
                 X = dot.X;
@@ -269,10 +260,6 @@ namespace DotsGame
             public override string ToString()
             {
                 string s;
-                //if (Own == StateOwn.Human) s = " Player";
-                //else if (Own == StateOwn.Computer) s = " Computer";
-                //else s = " None";
-                //s = Blocked ? X + ":" + Y + s + " Blocked" : X + ":" + Y + s + " Rating: " + Rating + "; " + Tag;
                 s = X + ":" + Y + "; " +
                     Own + "; " + Blocked + "; Rating: " + Rating + "; Tag: " + Tag + "; NumberPattern: " + NumberPattern;
                 return s;
@@ -284,8 +271,6 @@ namespace DotsGame
             }
             private int _IndexRel;
             private bool _fixed;
-
-            // private Dot dot;
 
             public int IndexRelation
             {
@@ -308,23 +293,6 @@ namespace DotsGame
                     }
                 }
 
-            }
-
-            public static explicit operator Dot(Point v)
-            {
-                return new Dot(v.X, v.Y);
-            }
-
-            public int X { get; set; }
-            public int Y { get; set; }
-        }
-
-        public class Point
-        {
-            public Point(int x, int y)
-            {
-                X = x;
-                Y = y;
             }
 
             public int X { get; set; }

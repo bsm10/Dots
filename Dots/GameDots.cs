@@ -102,9 +102,9 @@ namespace GameCore
     }
     public class GameDots : IEnumerator, IEnumerable//, IGame
     {
-        private const Player COMPUTER = Player.Computer;
-        private const Player NONE = Player.None;
-        private const Player HUMAN = Player.Human;
+        //private const Player COMPUTER = Player.Computer;
+        //private const Player NONE = Player.None;
+        //private const Player HUMAN = Player.Human;
 
         //public enum StateMove
         //{
@@ -174,28 +174,6 @@ namespace GameCore
 
             return d;
         }
-
-        //private GameDots CopyDots
-        //{
-        //    get
-        //    {
-        //        GameDots ad = new GameDots(BoardWidth, BoardHeight);
-        //        for (int i = 0; i < BoardWidth; i++)
-        //        {
-        //            for(int j = 0; j < BoardHeight; j++)
-        //            {
-        //                ad[i,j].Blocked = Dots[i,j].Blocked;
-        //                ad[i, j].Fixed = Dots[i, j].Fixed;
-        //                ad[i, j].IndexDot = Dots[i, j].IndexDot;
-        //                ad[i, j].Own = Dots[i, j].Own;
-        //                //ad[i, j].X = Dots[i].X;
-        //                //ad[i, j].Y = Dots[i].Y;
-        //            }
-        //        }
-        //        return ad;
-        //    }
-        //}
-
         public void LoadGame(List<Dot> ListDotForLoad)
         {
             foreach (Dot d in ListDotForLoad)
@@ -260,11 +238,6 @@ namespace GameCore
         {
             //MakeIndexRelation();
         }
-
-        //public GameDots(GameDots gameDots_Copy)
-        //{
-        //    this.gameDots_Copy = gameDots_Copy;
-        //}
 
         public void ListMoves_OnAdd(object sender, ListDotsEventArgs e)
         {
