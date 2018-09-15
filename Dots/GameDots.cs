@@ -6,7 +6,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using static DotsGame.LinksAndDots.Dot;
 
@@ -100,24 +99,12 @@ namespace GameCore
     {
         public Dot Dot { get; set; }
     }
-    public class GameDots : IEnumerator, IEnumerable//, IGame
+    public class GameDots : IEnumerator, IEnumerable
     {
-        //private const Player COMPUTER = Player.Computer;
-        //private const Player NONE = Player.None;
-        //private const Player HUMAN = Player.Human;
-
-        //public enum StateMove
-        //{
-        //    Human,
-        //    Computer
-        //}
         /// <summary>
         /// Cписок ходов - где точки не ссылаются на точки списка Dot, а дублируют
         /// </summary>
-        //public List<Dot> ListMoves { get; set; }
         public ListDots ListMoves { get; set; }
-
-
         /// <summary>
         /// Список ходов. Точки не участвуют в отрисовке, заносятся все ходы
         /// </summary>
@@ -148,7 +135,6 @@ namespace GameCore
                                          /// <summary>
                                          /// Основной список - вся доска
                                          /// </summary>
-        //public List<Dot> Dots1 { get; set; }
         public Dot[,] Dots { get; set; }
         /// <summary>
         /// Показывает, чей ход
@@ -224,7 +210,6 @@ namespace GameCore
             StackMoves.OnRemove += new EventHandler<ListDotsEventArgs>(StackMoves_OnRemove);
 
             ListLinks = new List<Link>();
-            //ListMoves = new List<Dot>();
             dots_in_region = new List<Dot>();
             Goal = new GoalPlayer();
         }
@@ -479,13 +464,6 @@ namespace GameCore
         {
             //MakeIndexRelation(dot);
         }
-        //private void RemoveNeibor(Dot dot)
-        //{
-        // foreach (Dot d in Dots)
-        // {
-        // if (d.NeiborDots.Contains(dot)) d.NeiborDots.Remove(dot);
-        // }
-        //}
         /// <summary>
         /// Расстояние между точками
         /// </summary>
@@ -898,8 +876,9 @@ namespace GameCore
         {
                 for (int i = 0; i < StackMoves.Count; i++)
                 {
-                    Dot d = StackMoves[i];
-                    CheckDotForBlock(d);
+                Dot d = StackMoves[i];
+                Dots[StackMoves[i].X, StackMoves[i].Y] = d;
+                CheckDotForBlock(d);
                 }
             return StackMoves.Where(dt => dt.Blocked).Count();
         }
@@ -2558,6 +2537,10 @@ this[dot.X, dot.Y -1]};
         {
             public Player Player { get; set; }
             public int CountBlocked { get; set; }
+            public override string ToString()
+            {
+                return $"{Player} - Blocked: {CountBlocked}";
+            }
         }
     }
 }
