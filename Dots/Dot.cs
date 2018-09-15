@@ -49,7 +49,7 @@ namespace DotsGame
             }
 
             public bool Blocked => (Dot1.Blocked & Dot2.Blocked);
-            public StateOwn Own => Dot1.Own;
+            public Player Own => Dot1.Own;
 
             public bool Fixed => (Dot1.Fixed | Dot2.Fixed);
 
@@ -166,7 +166,7 @@ namespace DotsGame
             }
             public int CountBlockedDots => BlokingDots.Count;
             public bool Selected { get; set; }
-            public StateOwn Own { get; set; }
+            public Player Own { get; set; }
             public int Rating { get; set; }
             public bool Marked { get; set; }
             public string Tag { get; set; } = string.Empty;
@@ -176,9 +176,9 @@ namespace DotsGame
                 InPattern,
                 MoveDot
             }
-            public enum StateOwn
+            public enum Player
             {
-                Empty,
+                None,
                 Human,
                 Computer
             }
@@ -205,7 +205,7 @@ namespace DotsGame
 
             public int NumberPattern { get; set; }
 
-            public Dot(int x, int y, StateOwn Owner = StateOwn.Empty, int NumberPattern = 0, int Rating = 0, string Tag = "")
+            public Dot(int x, int y, Player Owner = Player.None, int NumberPattern = 0, int Rating = 0, string Tag = "")
             {
                 X = x;
                 Y = y;
@@ -235,7 +235,7 @@ namespace DotsGame
                 NumberPattern = dot.NumberPattern;
                 Rating = dot.Rating;
             }
-            public Dot(Dot dot, StateOwn Owner)
+            public Dot(Dot dot, Player Owner)
             {
                 X = dot.X;
                 Y = dot.Y;

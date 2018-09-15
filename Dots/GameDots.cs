@@ -102,15 +102,15 @@ namespace GameCore
     }
     public class GameDots : IEnumerator, IEnumerable//, IGame
     {
-        private const StateOwn COMPUTER = StateOwn.Computer;
-        private const StateOwn NONE = StateOwn.Empty;
-        private const StateOwn HUMAN = StateOwn.Human;
+        private const Player COMPUTER = Player.Computer;
+        private const Player NONE = Player.None;
+        private const Player HUMAN = Player.Human;
 
-        public enum StateMove
-        {
-            Human,
-            Computer
-        }
+        //public enum StateMove
+        //{
+        //    Human,
+        //    Computer
+        //}
         /// <summary>
         /// Cписок ходов - где точки не ссылаются на точки списка Dot, а дублируют
         /// </summary>
@@ -153,7 +153,7 @@ namespace GameCore
         /// <summary>
         /// Показывает, чей ход
         /// </summary>
-        public StateMove MoveState { get; set; }
+        public Player MoveState { get; set; }
         /// <summary>
         /// Получает независимую копию точки
         /// </summary>
@@ -550,7 +550,7 @@ namespace GameCore
         /// <param name="dot"> точка Dot из массива точек типа ArrayDots </param>
         /// <returns> список точек </returns>
         private List<Dot> NeighborDotsSNWE(Dot dot) => (from d in NeighborDots(dot) where Distance(dot, d) == 1 select d).ToList();
-        private List<Dot> NeighborDotsSNWE(Dot dot, StateOwn Own) => (from d in NeighborDotsSNWE(dot)
+        private List<Dot> NeighborDotsSNWE(Dot dot, Player Own) => (from d in NeighborDotsSNWE(dot)
                                                                       where d.Own==Own
                                                                       select d).ToList();
         /// <summary>
@@ -608,7 +608,7 @@ namespace GameCore
             return list;
         }
 
-        private List<Dot> NeighborDots(Dot dot, StateOwn Own)
+        private List<Dot> NeighborDots(Dot dot, Player Own)
         {
             return NeighborDots(dot).Where(dt => dt.Own == Own).ToList();
         }
@@ -699,7 +699,7 @@ namespace GameCore
         /// </summary>
         /// <param name="Owner"></param>
         /// <returns></returns>
-        private List<Dot> EmptyNeibourDots(StateOwn Owner)
+        private List<Dot> EmptyNeibourDots(Player Owner)
         {
             List<Dot> ld = new List<Dot>();
             foreach (Dot d in Dots)
@@ -721,7 +721,7 @@ namespace GameCore
         private void MakeIndexRelation()
         {
             IEnumerable<Chain> q = from Dot d1 in StackMoves
-                                   where d1.Own == StateOwn.Computer
+                                   where d1.Own == Player.Computer
                                    from Dot d2 in StackMoves
                                    where
                                    d2.Own == d1.Own && Distance(d1, d2) == 1f ||
@@ -729,7 +729,7 @@ namespace GameCore
                                    select new Chain(d1, d2);
             List<Chain> l1 = q.Distinct(new ChainsComparer()).ToList();
             q = from Dot d1 in StackMoves
-                where d1.Own == StateOwn.Human
+                where d1.Own == Player.Human
                 from Dot d2 in StackMoves
                 where
                 d2.Own == d1.Own && Distance(d1, d2) == 1f ||
@@ -870,14 +870,14 @@ namespace GameCore
         /// <param name="dot"> точка куда делается ход </param>
         /// <param name="Owner"> владелец точки -целое 1-Игрок или 2 -Компьютер</param>
         /// <returns>количество окруженных точек, -1 если недопустимый ход; </returns>
-        private int MakeMove(Dot dot, StateOwn Owner, bool addForDraw = false)//
+        private int MakeMove(Dot dot, Player Owner, bool addForDraw = false)//
         {
             int Count_blocked_before_Human; int Count_blocked_after_Human;
             int Count_blocked_before_Comp; int Count_blocked_after_Comp;
             Goal.Player = 0;
             Goal.CountBlocked = 0;
-            Count_blocked_before_Human = (from Dot d in StackMoves where d.Own == StateOwn.Human && d.Blocked == true select d).Count();
-            Count_blocked_before_Comp = (from Dot d in StackMoves where d.Own == StateOwn.Computer && d.Blocked == true select d).Count();
+            Count_blocked_before_Human = (from Dot d in StackMoves where d.Own == Player.Human && d.Blocked == true select d).Count();
+            Count_blocked_before_Comp = (from Dot d in StackMoves where d.Own == Player.Computer && d.Blocked == true select d).Count();
             if (CheckValidMove(this[dot.X, dot.Y]))//если точка не занята
             {
                 if (Owner == 0)
@@ -890,8 +890,8 @@ namespace GameCore
             else return -1;//в случае невозможного хода
                            //--------------------------------
             CheckBlocked();
-            Count_blocked_after_Human = (from Dot d in StackMoves where d.Own == StateOwn.Human && d.Blocked == true select d).Count();
-            Count_blocked_after_Comp = (from Dot d in StackMoves where d.Own == StateOwn.Computer && d.Blocked == true select d).Count();
+            Count_blocked_after_Human = (from Dot d in StackMoves where d.Own == Player.Human && d.Blocked == true select d).Count();
+            Count_blocked_after_Comp = (from Dot d in StackMoves where d.Own == Player.Computer && d.Blocked == true select d).Count();
 
             if (addForDraw)
             {
@@ -903,12 +903,12 @@ namespace GameCore
             int result_Comp = Count_blocked_after_Comp - Count_blocked_before_Comp;
             if (result_Human != 0)
             {
-                Goal.Player = StateOwn.Computer;
+                Goal.Player = Player.Computer;
                 Goal.CountBlocked = result_Human;
             }
             if (result_Comp != 0)
             {
-                Goal.Player = StateOwn.Human;
+                Goal.Player = Player.Human;
                 Goal.CountBlocked = result_Comp;
             }
 
@@ -972,7 +972,7 @@ namespace GameCore
         /// </summary>
         /// <param name="blocked_dot">точка, которая блокируется</param>
         /// <param name="flg_own">владелец точки</param>
-        private void MarkDotsInRegion(Dot blocked_dot, StateOwn flg_own)
+        private void MarkDotsInRegion(Dot blocked_dot, Player flg_own)
         {
             blocked_dot.Marked = true;
             //добавим точки которые попали в окружение
@@ -1050,10 +1050,10 @@ this[dot.X, dot.Y -1]};
         /// <param name="arrDots"></param>
         /// <param name="Player"></param>
         /// <returns></returns>
-        private bool CheckDots(Dot dot, StateOwn Player)
+        private bool CheckDots(Dot dot, Player Player)
         {
             int res = MakeMove(dot, Player);
-            StateOwn pl = Player == StateOwn.Computer ? StateOwn.Human : StateOwn.Computer;
+            Player pl = Player == Player.Computer ? Player.Human : Player.Computer;
             if (Goal.Player == pl)// первое условие -ход в уже окруженный регион,
             {
                 UndoMove(dot);
@@ -1081,11 +1081,11 @@ this[dot.X, dot.Y -1]};
         {
             return NeighborDots(d1).Intersect(NeighborDots(d2), new DotEq()).ToList();
         }
-        private List<Dot> CommonDots(Dot d1, Dot d2, StateOwn Own)
+        private List<Dot> CommonDots(Dot d1, Dot d2, Player Own)
         {
             return NeighborDots(d1).Intersect(NeighborDots(d2), new DotEq()).Where(nd=>nd.Own==Own).ToList();
         }
-        private IEnumerable<Dot> CommonDotsE(Dot d1, Dot d2, StateOwn Own)
+        private IEnumerable<Dot> CommonDotsE(Dot d1, Dot d2, Player Own)
         {
             return NeighborDots(d1).Intersect(NeighborDots(d2), new DotEq()).Where(nd => nd.Own == Own);
         }
@@ -1100,7 +1100,7 @@ this[dot.X, dot.Y -1]};
         /// <param name="Owner"></param>
         /// <param name="Blocked"></param>
         /// <returns></returns>
-        private List<Dot> GetDots(StateOwn Owner, bool Blocked = false)
+        private List<Dot> GetDots(Player Owner, bool Blocked = false)
         {
             return (from Dot d in Dots
                     where d.Blocked == Blocked && d.Own == Owner
@@ -1137,7 +1137,7 @@ this[dot.X, dot.Y -1]};
         /// </summary>
         /// <param name="Owner">владелец проверяемых точек</param>
         /// <returns>Возвращает ход(точку) который завершает окружение</returns>
-        private Dot CheckMove(StateOwn Owner)
+        private Dot CheckMove(Player Owner)
         {
             GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
             List<Dot> happy_dots = new List<Dot>();
@@ -1168,13 +1168,13 @@ this[dot.X, dot.Y -1]};
             if (result != null)
             {
                 result.Tag = $"CheckMove({Owner})";
-                result.NumberPattern = Owner == StateOwn.Computer ? 777 : 666; //777-ход в результате которого получается окружение - компьютер побеждает
+                result.NumberPattern = Owner == Player.Computer ? 777 : 666; //777-ход в результате которого получается окружение - компьютер побеждает
             }
             return result;
         }
-        private IEnumerable<Chain3Dots> SelectDotsCheckMove(StateOwn Owner, GameDots GameDots_Copy)
+        private IEnumerable<Chain3Dots> SelectDotsCheckMove(Player Owner, GameDots GameDots_Copy)
         {
-            StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
+            Player Enemy = Owner == Player.Human ? Player.Computer : Player.Human;
             List<Dot> dots = GameDots_Copy.GetDots(Owner);
             //это самый быстрый вариант запроса
             IEnumerable<Chain3Dots> qry = from Dot d1 in dots
@@ -1226,7 +1226,7 @@ this[dot.X, dot.Y -1]};
 
             return qry.Distinct(new Chains3DotsComparerByEmpty());
         }
-        private Dot CheckPatternVilkaNextMove(StateOwn Owner)
+        private Dot CheckPatternVilkaNextMove(Player Owner)
         //Доработать!!! неправильно работает
         {
             GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
@@ -1286,7 +1286,7 @@ this[dot.X, dot.Y -1]};
             return GD;
         }
 
-        private List<Dot> CheckPattern(StateOwn Owner, StateOwn Enemy)
+        private List<Dot> CheckPattern(Player Owner, Player Enemy)
         {
             //StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
             List<Dot> ld = new List<Dot>();
@@ -1295,19 +1295,19 @@ this[dot.X, dot.Y -1]};
             //
             // -  -
             // +  +m
-            pat = from Dot move in GetDots(StateOwn.Empty)
+            pat = from Dot move in GetDots(Player.None)
                   let lst_tri = GetSimpleTriangles(move)
                   from Triangle t in lst_tri
                   where move == t.Dot1_45
-                  && t.Dot2_45.Own == StateOwn.Human
-                  && t.Dot_90.Own == StateOwn.Computer
+                  && t.Dot2_45.Own == Player.Human
+                  && t.Dot_90.Own == Player.Computer
                   select new Dot(move.X, move.Y, NumberPattern: 1, Rating: 6, Tag: $"CheckPattern({Owner})");
             ld.AddRange(pat.Distinct(new DotEqbyRating()));
             //********************************************************************
             // +  -
             // -  +m
             pat = from Dot move in get_non_blocked
-                  where move.Own == StateOwn.Empty
+                  where move.Own == Player.None
                   let dotsOwner = NeighborDots(move, Owner).Where(d=>!d.Blocked).ToList()
                   let dotsEnemy = NeighborDotsSNWE(move, Enemy).Where(d => !d.Blocked).ToList()
                   where dotsEnemy.Count == 2 && dotsOwner.Count == 1
@@ -1323,7 +1323,7 @@ this[dot.X, dot.Y -1]};
             // -  +м или разрыв вражеской связи
             // +  +   -
             pat = from Dot move in get_non_blocked
-                  where move.Own == StateOwn.Empty
+                  where move.Own == Player.None
                   let dotsOwner = NeighborDots(move, Owner).Where(dt => !dt.Blocked).ToList()
                   let dotsEnemy = NeighborDots(move, Enemy).Where(dt => !dt.Blocked).ToList()
                   where dotsEnemy.Count == 2 && Distance(dotsEnemy[0], dotsEnemy[1]) >= 2
@@ -1335,7 +1335,7 @@ this[dot.X, dot.Y -1]};
             // +  -  +   или   +  -
             //   м+              м+  +
             pat = from Dot move in get_non_blocked
-                  where move.Own == StateOwn.Empty
+                  where move.Own == Player.None
                   let dotsOwner = NeighborDots(move, Owner).Where(dt => !dt.Blocked).ToList()
                   let dotsEnemy = NeighborDotsSNWE(move, Enemy).Where(dt => !dt.Blocked).ToList()
                   where dotsEnemy.Count == 1 && dotsOwner.Count == 2
@@ -1360,7 +1360,7 @@ this[dot.X, dot.Y -1]};
         }
 
 //медленно!
-        private List<Dot> CheckPattern1(StateOwn Owner, StateOwn Enemy)
+        private List<Dot> CheckPattern1(Player Owner, Player Enemy)
         {
             object sync = new Object();
             //StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
@@ -1375,7 +1375,7 @@ this[dot.X, dot.Y -1]};
                     //
                     // -  -
                     // +  +m
-                    pat = from Dot move in GetDots(StateOwn.Empty)
+                    pat = from Dot move in GetDots(Player.None)
                           let lst_tri = GetSimpleTriangles(move)
                           from Triangle t in lst_tri
                           where move == t.Dot1_45
@@ -1398,7 +1398,7 @@ this[dot.X, dot.Y -1]};
                     // +  -
                     // -  +m
                     pat = from Dot move in get_non_blocked
-                          where move.Own == StateOwn.Empty
+                          where move.Own == Player.None
                           let dotsOwner = NeighborDots(move, Owner)
                           let dotsEnemy = NeighborDotsSNWE(move, Enemy)
                           where dotsEnemy.Count == 2 && dotsOwner.Count == 1
@@ -1421,7 +1421,7 @@ this[dot.X, dot.Y -1]};
                     // -  +м или разрыв вражеской связи
                     // +  +   -
                     pat = from Dot move in get_non_blocked
-                          where move.Own == StateOwn.Empty
+                          where move.Own == Player.None
                           let dotsOwner = NeighborDots(move, Owner).Where(dt => !dt.Blocked).ToList()
                           let dotsEnemy = NeighborDots(move, Enemy).Where(dt => !dt.Blocked).ToList()
                           where dotsEnemy.Count == 2 && Distance(dotsEnemy[0], dotsEnemy[1]) >= 2
@@ -1439,7 +1439,7 @@ this[dot.X, dot.Y -1]};
                     // +  -  +   или   +  -
                     //   м+              м+  +
                     pat = from Dot move in get_non_blocked
-                          where move.Own == StateOwn.Empty
+                          where move.Own == Player.None
                           let dotsOwner = NeighborDots(move, Owner).Where(dt => !dt.Blocked).ToList()
                           let dotsEnemy = NeighborDotsSNWE(move, Enemy).Where(dt => !dt.Blocked).ToList()
                           where dotsEnemy.Count == 1 && dotsOwner.Count == 2
@@ -1481,7 +1481,7 @@ this[dot.X, dot.Y -1]};
         /// <param name="Owner"></param>
         /// <param name="Enemy"></param>
         /// <param name="ld">список проверяемых точек</param>
-        private void CheckPatternDot(StateOwn Owner, StateOwn Enemy, List<Dot> ld)
+        private void CheckPatternDot(Player Owner, Player Enemy, List<Dot> ld)
         {
             GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
             for (int i = 0; i < ld.Count; i++)
@@ -1498,9 +1498,9 @@ this[dot.X, dot.Y -1]};
             }
         }
 
-        private Dot CheckPattern_vilochka(StateOwn Owner)
+        private Dot CheckPattern_vilochka(Player Owner)
         {
-            StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
+            Player Enemy = Owner == Player.Human ? Player.Computer : Player.Human;
             IEnumerable<Dot> get_non_blocked = from Dot d in this where d.Blocked == false select d; //получить коллекцию незаблокированных точек
             List<Dot> list = new List<Dot>();
             Parallel.Invoke(
@@ -1512,7 +1512,7 @@ this[dot.X, dot.Y -1]};
                     //       -red2  +blue2
                     // -red3 +blue1 move(red)
                     IEnumerable<Dot> pat = from Dot move in get_non_blocked
-                                           where move.Own == StateOwn.Empty
+                                           where move.Own == Player.None
                                            let neighbor_dots_move = NeighborDots(move, 2)
                                            from Dot dotComputer0 in neighbor_dots_move
                                            where dotComputer0.Own == Owner && Distance(dotComputer0, move) == 2f
@@ -1529,16 +1529,16 @@ this[dot.X, dot.Y -1]};
                                            where dotHuman4.Own == Enemy && Distance(dotHuman4, move) == 1f
                                           && Distance(dotHuman3, dotHuman4) == 1.4f
                                            from Dot dotEmpty5 in neighbor_dots_move
-                                           where dotEmpty5.Own == StateOwn.Empty && Distance(dotEmpty5, move) == 1.4f
+                                           where dotEmpty5.Own == Player.None && Distance(dotEmpty5, move) == 1.4f
                                           && Distance(dotHuman4, dotEmpty5) == 1f
                                            from Dot dotEmpty6 in neighbor_dots_move
-                                           where dotEmpty6.Own == StateOwn.Empty && Distance(dotEmpty6, move) == 1.4f
+                                           where dotEmpty6.Own == Player.None && Distance(dotEmpty6, move) == 1.4f
                                           && Distance(dotEmpty5, dotEmpty6) == 2.8f
                                            from Dot dotEmpty7 in neighbor_dots_move
-                                           where dotEmpty7.Own == StateOwn.Empty && Distance(dotEmpty7, move) == 1f
+                                           where dotEmpty7.Own == Player.None && Distance(dotEmpty7, move) == 1f
                                           && Distance(dotEmpty6, dotEmpty7) == 2.2f
                                            from Dot dotEmpty8 in neighbor_dots_move
-                                           where dotEmpty8.Own == StateOwn.Empty && Distance(dotEmpty8, move) == 1f
+                                           where dotEmpty8.Own == Player.None && Distance(dotEmpty8, move) == 1f
                                           && Distance(dotEmpty7, dotEmpty8) == 1.4f
                                           && Distance(dotEmpty8, dotComputer0) == 3f
                                            select new Dot(move.X, move.Y, NumberPattern: 1, Rating: 3, Tag: $"CheckPattern({Owner})");
@@ -1553,7 +1553,7 @@ this[dot.X, dot.Y -1]};
                     //    *
                     //iNumberPattern = 2;
                     IEnumerable<Dot> pat = from Dot move in get_non_blocked
-                          where move.Own == StateOwn.Empty
+                          where move.Own == Player.None
                           let neighbor_dots_move = NeighborDots(move, 3)
                           from Dot dotComputer0 in neighbor_dots_move
                           where dotComputer0.Own == Owner && Distance(dotComputer0, move) == 1f
@@ -1576,16 +1576,16 @@ this[dot.X, dot.Y -1]};
                           where dotHuman6.Own == Enemy && Distance(dotHuman6, move) == 2.2f
                          && Distance(dotHuman5, dotHuman6) == 1.4f
                           from Dot dotEmpty7 in neighbor_dots_move
-                          where dotEmpty7.Own == StateOwn.Empty && Distance(dotEmpty7, move) == 1.4f
+                          where dotEmpty7.Own == Player.None && Distance(dotEmpty7, move) == 1.4f
                          && Distance(dotHuman6, dotEmpty7) == 3.6f
                           from Dot dotEmpty8 in neighbor_dots_move
-                          where dotEmpty8.Own == StateOwn.Empty && Distance(dotEmpty8, move) == 1f
+                          where dotEmpty8.Own == Player.None && Distance(dotEmpty8, move) == 1f
                          && Distance(dotEmpty7, dotEmpty8) == 2.2f
                           from Dot dotEmpty9 in neighbor_dots_move
-                          where dotEmpty9.Own == StateOwn.Empty && Distance(dotEmpty9, move) == 1f
+                          where dotEmpty9.Own == Player.None && Distance(dotEmpty9, move) == 1f
                          && Distance(dotEmpty8, dotEmpty9) == 1.4f
                           from Dot dotEmpty10 in neighbor_dots_move
-                          where dotEmpty10.Own == StateOwn.Empty && Distance(dotEmpty10, move) == 1.4f
+                          where dotEmpty10.Own == Player.None && Distance(dotEmpty10, move) == 1.4f
                          && Distance(dotEmpty9, dotEmpty10) == 2.2f
                          && Distance(dotEmpty10, dotComputer0) == 2.2f
                           select new Dot(move.X, move.Y, NumberPattern: 2, Rating: 3, Tag: $"CheckPattern({Owner})");
@@ -1600,7 +1600,7 @@ this[dot.X, dot.Y -1]};
                     // -  +
                     // +
                     IEnumerable<Dot> pat = from Dot move in get_non_blocked
-                          where move.Own == StateOwn.Empty
+                          where move.Own == Player.None
                           let neighbor_dots_move = NeighborDots(move, 2)
                           from Dot dotComputer0 in neighbor_dots_move
                           where dotComputer0.Own == Owner && Distance(dotComputer0, move) == 2f
@@ -1617,16 +1617,16 @@ this[dot.X, dot.Y -1]};
                           where dotHuman4.Own == Enemy && Distance(dotHuman4, move) == 1f
                          && Distance(dotHuman3, dotHuman4) == 1.4f
                           from Dot dotEmpty5 in neighbor_dots_move
-                          where dotEmpty5.Own == StateOwn.Empty && Distance(dotEmpty5, move) == 1f
+                          where dotEmpty5.Own == Player.None && Distance(dotEmpty5, move) == 1f
                          && Distance(dotHuman4, dotEmpty5) == 1.4f
                           from Dot dotEmpty6 in neighbor_dots_move
-                          where dotEmpty6.Own == StateOwn.Empty && Distance(dotEmpty6, move) == 1f
+                          where dotEmpty6.Own == Player.None && Distance(dotEmpty6, move) == 1f
                          && Distance(dotEmpty5, dotEmpty6) == 1.4f
                           from Dot dotEmpty7 in neighbor_dots_move
-                          where dotEmpty7.Own == StateOwn.Empty && Distance(dotEmpty7, move) == 2f
+                          where dotEmpty7.Own == Player.None && Distance(dotEmpty7, move) == 2f
                          && Distance(dotEmpty6, dotEmpty7) == 3f
                           from Dot dotEmpty8 in neighbor_dots_move
-                          where dotEmpty8.Own == StateOwn.Empty && Distance(dotEmpty8, move) == 1.4f
+                          where dotEmpty8.Own == Player.None && Distance(dotEmpty8, move) == 1.4f
                          && Distance(dotEmpty7, dotEmpty8) == 3.2f
                          && Distance(dotEmpty8, dotComputer0) == 1.4f
                           select new Dot(move.X, move.Y, NumberPattern: 3, Rating: 3, Tag: $"CheckPattern({Owner})");
@@ -1639,7 +1639,7 @@ this[dot.X, dot.Y -1]};
                     //    e     e
                     //iNumberPattern = 4;
                     IEnumerable<Dot> pat = from Dot move in get_non_blocked
-                          where move.Own == StateOwn.Empty
+                          where move.Own == Player.None
                           let neighbor_dots_move = NeighborDots(move, 2)
                           from Dot dotComputer0 in neighbor_dots_move
                           where dotComputer0.Own == Owner && Distance(dotComputer0, move) == 2f
@@ -1659,16 +1659,16 @@ this[dot.X, dot.Y -1]};
                           where dotHuman5.Own == Enemy && Distance(dotHuman5, move) == 1f
                          && Distance(dotHuman4, dotHuman5) == 2f
                           from Dot dotEmpty6 in neighbor_dots_move
-                          where dotEmpty6.Own == StateOwn.Empty && Distance(dotEmpty6, move) == 1.4f
+                          where dotEmpty6.Own == Player.None && Distance(dotEmpty6, move) == 1.4f
                          && Distance(dotHuman5, dotEmpty6) == 2.2f
                           from Dot dotEmpty7 in neighbor_dots_move
-                          where dotEmpty7.Own == StateOwn.Empty && Distance(dotEmpty7, move) == 1.4f
+                          where dotEmpty7.Own == Player.None && Distance(dotEmpty7, move) == 1.4f
                          && Distance(dotEmpty6, dotEmpty7) == 2f
                           from Dot dotEmpty8 in neighbor_dots_move
-                          where dotEmpty8.Own == StateOwn.Empty && Distance(dotEmpty8, move) == 1f
+                          where dotEmpty8.Own == Player.None && Distance(dotEmpty8, move) == 1f
                          && Distance(dotEmpty7, dotEmpty8) == 1f
                           from Dot dotEmpty9 in neighbor_dots_move
-                          where dotEmpty9.Own == StateOwn.Empty && Distance(dotEmpty9, move) == 1f
+                          where dotEmpty9.Own == Player.None && Distance(dotEmpty9, move) == 1f
                          && Distance(dotEmpty8, dotEmpty9) == 2f
                          && Distance(dotEmpty9, dotComputer0) == 2.2f
                           select new Dot(move.X, move.Y, NumberPattern: 4, Rating: 3, Tag: $"CheckPattern({Owner})");
@@ -1689,7 +1689,7 @@ this[dot.X, dot.Y -1]};
         /// </summary>
         /// <param name="Owner"></param>
         /// <returns>Список точек, которые могут замкнуть регион</returns>
-        private List<Dot> CheckPatternMove(StateOwn Owner)
+        private List<Dot> CheckPatternMove(Player Owner)
         {
             var qry = from Dot d1 in this
                       where d1.Own == Owner && !d1.Blocked
@@ -1714,14 +1714,14 @@ this[dot.X, dot.Y -1]};
         /// <param name="Owner">Владелец точек, который проверяется</param>
         /// <param name="IndexRelation"></param>
         /// <returns></returns>
-        private Dot CheckPatternVilka1x1(StateOwn Owner)
+        private Dot CheckPatternVilka1x1(Player Owner)
         {
             GameDots GameDots_Copy = GetGameDotsCopy(StackMoves);
-            StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
+            Player Enemy = Owner == Player.Human ? Player.Computer : Player.Human;
             List<Dot> ld = new List<Dot>();
             IEnumerable<Chain5Dots> qry;
 
-            List<Dot> get_non_blocked = GameDots_Copy.GetDots(StateOwn.Empty);
+            List<Dot> get_non_blocked = GameDots_Copy.GetDots(Player.None);
             List<Dot> GetOwnerDots = GameDots_Copy.GetDots(Owner);
 
             qry = from Dot dotOwner1 in GetOwnerDots
@@ -1761,8 +1761,8 @@ this[dot.X, dot.Y -1]};
             {
                 result.Blocked = false;
                 result.Own = 0;
-                result.NumberPattern = result.NumberPattern = Owner == StateOwn.Computer ? 777 : 666;
-                result.Rating = Owner == StateOwn.Computer ? 1 : 2;
+                result.NumberPattern = result.NumberPattern = Owner == Player.Computer ? 777 : 666;
+                result.Rating = Owner == Player.Computer ? 1 : 2;
                 result.Tag = $"CheckPatternVilka1x1({Owner})";
             }
             return result;
@@ -1775,17 +1775,17 @@ this[dot.X, dot.Y -1]};
         /// <param name="Owner">Владелец точек, который проверяется</param>
         /// <param name="IndexRelation"></param>
         /// <returns></returns>
-        private Dot CheckPatternVilka2x2(StateOwn Owner)
+        private Dot CheckPatternVilka2x2(Player Owner)
         {
             GameDots GameDots_Copy = GetGameDotsCopy(ListMoves);
-            StateOwn Enemy = Owner == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
+            Player Enemy = Owner == Player.Human ? Player.Computer : Player.Human;
             List<Dot> ld = new List<Dot>();
             IEnumerable<Chain7Dots> qry;
             qry = from Dot d1 in GameDots_Copy.GetDots(NoEmpty: true) //Board_NotEmptyNonBlockedDots
                   where d1.Own == Owner
                   from Dot d2 in GameDots_Copy.GetDots(NoEmpty: true)
                   where d2.IndexRelation == d1.IndexRelation && Distance(d1, d2) < 4.5f & Distance(d1, d2) >= 2.8f
-                  from Dot de3 in GameDots_Copy.GetDots(StateOwn.Empty)
+                  from Dot de3 in GameDots_Copy.GetDots(Player.None)
                   where GameDots_Copy.NeighborDots(de3).Where(d => d.Own == Owner).Count() == 0
                   && GameDots_Copy.CommonEmptyDots(d1, de3).Count == 2
                   && GameDots_Copy.CommonEmptyDots(d2, de3).Count == 2
@@ -1823,8 +1823,8 @@ this[dot.X, dot.Y -1]};
             {
                 result.Blocked = false;
                 result.Own = 0;
-                result.NumberPattern = Owner == StateOwn.Computer ? 777 : 666;
-                result.Rating = Owner == StateOwn.Computer ? 2 : 3;
+                result.NumberPattern = Owner == Player.Computer ? 777 : 666;
+                result.Rating = Owner == Player.Computer ? 2 : 3;
                 result.Tag = $"CheckPatternVilka2x2({Owner})";
             }
             return result;
@@ -1873,7 +1873,7 @@ this[dot.X, dot.Y -1]};
 
             //Проигрываем разные комбинации
             recursion_depth = 0;
-            Play(StateOwn.Computer);
+            Play(Player.Computer);
 
             //foreach (Dot d in Lst_branch) DebugInfo.lstDBG2.Add(d.ToString() + " - " + d.Tag);
             Dot move = Lst_branch.Where(dt => dt.Rating == Lst_branch.Min(d => d.Rating)).ElementAtOrDefault(0);
@@ -1885,14 +1885,14 @@ this[dot.X, dot.Y -1]};
             #region Если не найдено лучшего хода, берем любую точку
             if (best_move == null)
             {
-                IEnumerable<Dot> q = from Dot d in GetDots(StateOwn.Computer)
-                        from emptydot in NeighborDotsSNWE(d, StateOwn.Empty)
+                IEnumerable<Dot> q = from Dot d in GetDots(Player.Computer)
+                        from emptydot in NeighborDotsSNWE(d, Player.None)
                         select emptydot;
                 if (q.Count() == 0)
                 {
                     var random = new Random(DateTime.Now.Millisecond);
                     q = from Dot d in Dots//любая точка
-                        where d.Blocked == false & d.Own == StateOwn.Empty
+                        where d.Blocked == false & d.Own == Player.None
                         orderby random.Next()
                         select d;
                 }
@@ -1928,11 +1928,11 @@ this[dot.X, dot.Y -1]};
         /// </summary>
         /// <param name="Player"></param>
         /// <returns></returns>
-        private List<Dot> BestMove(StateOwn Player, IProgress<string> progress)
+        private List<Dot> BestMove(Player Player, IProgress<string> progress)
         {
             List<Dot> moves = new List<Dot>();
             Dot bm = null;
-            StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
+            Player Enemy = Player == Player.Human ? Player.Computer : Player.Human;
             object sync = new Object();
             #region ParallelTasks
 
@@ -1970,7 +1970,6 @@ this[dot.X, dot.Y -1]};
             {
                 lock (sync)
                 {
-
                     bm = CheckMove(Enemy);
                     if (bm != null) moves.Add(bm);
                     BlockedEnemy = Goal.CountBlocked;
@@ -2075,7 +2074,7 @@ this[dot.X, dot.Y -1]};
             StopWatch($"CheckPattern_vilochka, CheckPatternVilka1x1 - {sW2.Elapsed.Milliseconds.ToString()}", progress);
             if (moves.Count > 0)
             {
-                CheckPatternDot(StateOwn.Computer, StateOwn.Human, moves);
+                CheckPatternDot(Player.Computer, Player.Human, moves);
                 return moves;
             }
             #endregion
@@ -2102,7 +2101,7 @@ this[dot.X, dot.Y -1]};
             StopWatch($"CheckPatternVilka2x2 {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
             if (moves.Count > 0)
             {
-                CheckPatternDot(StateOwn.Computer, StateOwn.Human, moves);
+                CheckPatternDot(Player.Computer, Player.Human, moves);
                 return moves;
             }
             #endregion
@@ -2234,16 +2233,16 @@ this[dot.X, dot.Y -1]};
         /// <param name="Player">Human</param>
         /// <param name="player2">Computer</param>
         /// <returns></returns>
-        private StateOwn Play(StateOwn Player)
+        private Player Play(Player Player)
         {
             
-            StateOwn Enemy = Player == StateOwn.Human ? StateOwn.Computer : StateOwn.Human;
+            Player Enemy = Player == Player.Human ? Player.Computer : Player.Human;
 
             List<Dot> lst_best_move = new List<Dot>();//сюда заносим лучшие ходы
             if (recursion_depth == 1) counter_moves = 1;
             recursion_depth++;
             
-            if (recursion_depth > MAX_RECURSION) return StateOwn.Empty;
+            if (recursion_depth > MAX_RECURSION) return Player.None;
             DebugInfo.lstDBG1.Add($"*****{Player}, recursion_depth: {recursion_depth}, counter_moves: {counter_moves}******");
             lst_best_move = BestMove(Player, progress);
             foreach (Dot d in lst_best_move)
@@ -2318,7 +2317,7 @@ this[dot.X, dot.Y -1]};
                     #endregion
                     //теперь ходит другой игрок ===========================================================================
 
-                    StateOwn result = Play(Enemy);
+                    Player result = Play(Enemy);
 
                     recursion_depth--;
 
@@ -2376,7 +2375,7 @@ this[dot.X, dot.Y -1]};
             #endregion
             best_move = lst_best_move.Where(dt => dt.Rating == lst_best_move.Min(d => d.Rating)).ElementAtOrDefault(0);
 
-            return StateOwn.Empty;
+            return Player.None;
         }//----------------------------Play-----------------------------------------------------
 
         private List<Triangle> GetSimpleTriangles(Dot dot)
@@ -2443,9 +2442,9 @@ this[dot.X, dot.Y -1]};
         { position = 0; }
 
 
-        public bool IsGameOver => GetDots(StateOwn.Empty).Count == 0;
+        public bool IsGameOver => GetDots(Player.None).Count == 0;
 
-        public Task<int> MovePlayerAsync(StateOwn Player, IProgress<string> _progress = null, Dot pl_move = null)
+        public Task<int> MovePlayerAsync(Player Player, IProgress<string> _progress = null, Dot pl_move = null)
         {
             TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
             progress = _progress;
@@ -2513,7 +2512,7 @@ this[dot.X, dot.Y -1]};
         /// 1 - игра окончена
         /// -1 - ошибка
         /// </returns>
-        public int MovePlayer(StateOwn Player, Dot pl_move = null)
+        public int MovePlayer(Player Player, Dot pl_move = null)
         {
             if (pl_move == null)
             {
@@ -2532,26 +2531,26 @@ this[dot.X, dot.Y -1]};
         }
         public string Statistic()
         {
-            var q5 = from Dot d in Dots where d.Own == StateOwn.Human select d;
-            var q6 = from Dot d in Dots where d.Own == StateOwn.Computer select d;
-            var q7 = from Dot d in Dots where d.Own == StateOwn.Human & d.Blocked select d;
-            var q8 = from Dot d in Dots where d.Own == StateOwn.Computer & d.Blocked select d;
+            var q5 = from Dot d in Dots where d.Own == Player.Human select d;
+            var q6 = from Dot d in Dots where d.Own == Player.Computer select d;
+            var q7 = from Dot d in Dots where d.Own == Player.Human & d.Blocked select d;
+            var q8 = from Dot d in Dots where d.Own == Player.Computer & d.Blocked select d;
             return q8.Count().ToString() + ":" + q7.Count().ToString();
         }
 
-        public int MovePlayer(Dot pl_move)
-        {
-            if (MakeMove(pl_move, pl_move.Own, addForDraw: true) == -1)
-            {
-                return -1;
-            }
+        //public int MovePlayer(Dot pl_move)
+        //{
+        //    if (MakeMove(pl_move, pl_move.Own, addForDraw: true) == -1)
+        //    {
+        //        return -1;
+        //    }
 
-            if (IsGameOver)
-            {
-                return 1;
-            }
-            return 0;
-        }
+        //    if (IsGameOver)
+        //    {
+        //        return 1;
+        //    }
+        //    return 0;
+        //}
 
         //IEnumerator and IEnumerable require these methods.
         //public IEnumerator GetEnumerator()
@@ -2584,7 +2583,7 @@ this[dot.X, dot.Y -1]};
         /// </summary>
         public class GoalPlayer
         {
-            public StateOwn Player { get; set; }
+            public Player Player { get; set; }
             public int CountBlocked { get; set; }
         }
     }
