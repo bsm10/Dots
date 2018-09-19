@@ -4,8 +4,10 @@ using DotsGame.LinksAndDots;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using static DotsGame.LinksAndDots.Dot;
 
@@ -240,10 +242,34 @@ namespace GameCore
             }
             return;
         }
+        public class ViewModelBase : INotifyPropertyChanged
+        {
+            public event PropertyChangedEventHandler PropertyChanged;
+
+            /// <summary>
+            /// Fires an event when called. Used to update the UI in the MVVM world.
+            /// [CallerMemberName] Ensures only the peoperty that calls it gets the event
+            /// and not every property
+            /// </summary>
+            protected void RaisePropertyChanged([CallerMemberName] string propertyName = "")
+            {
+                if (this.PropertyChanged != null)
+                {
+                    this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                }
+            }
+        }
 
         public void NewGame()
         {
-            ClearDoard();
+            foreach (Dot d in Dots)
+            {
+                d.Restore();
+            }
+            ListLinks.Clear();
+            ListMoves.Clear();
+            StackMoves.Clear();
+            ListLinks.Clear();
             dots_in_region.Clear();
         }
         public class DotEq : EqualityComparer<Dot>
@@ -696,28 +722,6 @@ namespace GameCore
             MakeChains(l2);
         }
 
-        /// <summary>
-        /// Не очищает список Dots, а сбрасывает статусы точки
-        /// </summary>
-        public void ClearDoard()
-        {
-            foreach (Dot d in Dots)
-            {
-                d.Own = 0;
-                d.Marked = false;
-                d.Blocked = false;
-                d.BlokingDots.Clear();
-                d.Rating = 0;
-                d.Tag = "";
-                d.NumberPattern = 0;
-                d.IndexRelation = d.IndexDot;
-                d.StateDot = StateDotInPattern.Normal;
-            }
-            ListLinks.Clear();
-            ListMoves.Clear();
-            StackMoves.Clear();
-        }
-
         private int Counter = 0;
         private Dot DotChecked;
         private bool DotIsBlocked(Dot dot)
@@ -903,6 +907,7 @@ namespace GameCore
                         for (int j = 0; j < Lst_blocked_dots.Count; j++)
                         {
                             Dot bd = Lst_blocked_dots[j];
+                            if (bd == null) continue;
                             if (bd.Own != 0) counter += 1;
                             if (dr.BlokingDots.Contains(bd) == false & bd.Own != 0 & dr.Own != bd.Own)
                             {

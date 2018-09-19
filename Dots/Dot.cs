@@ -248,7 +248,10 @@ namespace DotsGame
                 Rating = 0;
                 Tag = "";
                 NeiborDots.Clear();
-                UnmarkDot();
+                Marked = false;
+                NumberPattern = 0;
+                StateDot = StateDotInPattern.Normal;
+
             }
             public void UnmarkDot()
             {

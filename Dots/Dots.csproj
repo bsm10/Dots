@@ -1,39 +1,37 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
   <PropertyGroup>
     <TargetFramework>netstandard1.4</TargetFramework>
     <RootNamespace>DotsGame</RootNamespace>
     <ApplicationIcon />
     <Win32Resource />
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <OldToolsVersion>2.0</OldToolsVersion>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-
   <ItemGroup>
     <Compile Remove="GameEngine.cs" />
     <Compile Remove="IGame.cs" />
     <Compile Remove="IScore.cs" />
     <Compile Remove="PEditor.cs" />
   </ItemGroup>
-
   <ItemGroup>
     <None Remove="GameDots.cs~RF3ec677fa.TMP" />
     <None Remove="GameDots.cs~RFa971abf5.TMP" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="System.Linq.Expressions" Version="4.3.0" />
     <PackageReference Include="System.Linq.Parallel" Version="4.3.0" />
     <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
   </ItemGroup>
-
   <ItemGroup>
     <Reference Include="System.Windows.Forms">
       <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\System.Windows.Forms.dll</HintPath>
     </Reference>
   </ItemGroup>
-
 </Project>
