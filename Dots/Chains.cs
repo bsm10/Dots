@@ -24,11 +24,11 @@ namespace DotsGame
             public Dot Dot1 { get; set; }
             public Dot Dot2 { get; set; }
             public Dot DotE { get; set; }
-            public List<Dot> GetConnectingEmptyDotsDot1DotE(GameDots GD)
+            public List<Dot> EmptyDotsBetweenDot1DotE(GameDots GD)
             {
                 return GD.CommonEmptyDots(Dot1, DotE);
             }
-            public List<Dot> GetConnectingEmptyDotsDot2DotE(GameDots GD)
+            public List<Dot> EmptyDotsBetweenDot2DotE(GameDots GD)
             {
                 return GD.CommonEmptyDots(Dot2, DotE);
             }
