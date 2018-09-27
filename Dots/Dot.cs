@@ -234,6 +234,7 @@ namespace DotsGame
                 Own = Owner;
                 NumberPattern = dot.NumberPattern;
                 Rating = dot.Rating;
+                //Tuple<int, int> XY = Tuple.Create(X, Y);
             }
             /// <summary>
             /// Восстанавливаем первоначальное состояние точки

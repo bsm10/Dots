@@ -661,51 +661,51 @@ namespace GameCore
         /// </summary>
         /// <param name="Owner"></param>
         /// <returns></returns>
-        private List<Dot> EmptyNeibourDots(Player Owner)
-        {
-            List<Dot> ld = new List<Dot>();
-            foreach (Dot d in Dots)
-            {
-                if (d.Own == Owner)
-                {
-                    var q = from Dot dot in Dots
-                            where dot.Blocked == false & dot.Own == 0 & Distance(dot, d) < 2
-                            select dot;
-                    foreach (Dot empty_d in q)
-                    {
-                        if (ld.Contains(empty_d) == false) ld.Add(empty_d);
-                    }
-                }
-            }
-            return ld;
-        }
+        //private List<Dot> EmptyNeibourDots(Player Owner)
+        //{
+        //    List<Dot> ld = new List<Dot>();
+        //    foreach (Dot d in Dots)
+        //    {
+        //        if (d.Own == Owner)
+        //        {
+        //            var q = from Dot dot in Dots
+        //                    where dot.Blocked == false & dot.Own == 0 & Distance(dot, d) < 2
+        //                    select dot;
+        //            foreach (Dot empty_d in q)
+        //            {
+        //                if (ld.Contains(empty_d) == false) ld.Add(empty_d);
+        //            }
+        //        }
+        //    }
+        //    return ld;
+        //}
 
-        private void MakeIndexRelation()
-        {
-            IEnumerable<Chain> q = from Dot d1 in StackMoves
-                                   where d1.Own == Player.Computer
-                                   from Dot d2 in StackMoves
-                                   where
-                                   d2.Own == d1.Own && Distance(d1, d2) == 1f ||
-                                   d2.Own == d1.Own && Distance(d1, d2) == 1.4f
-                                   select new Chain(d1, d2);
-            List<Chain> l1 = q.Distinct(new ChainsComparer()).ToList();
-            q = from Dot d1 in StackMoves
-                where d1.Own == Player.Human
-                from Dot d2 in StackMoves
-                where
-                d2.Own == d1.Own && Distance(d1, d2) == 1f ||
-                d2.Own == d1.Own && Distance(d1, d2) == 1.4f
-                select new Chain(d1, d2);
-            List<Chain> l2 = q.Distinct(new ChainsComparer()).ToList();
-            MakeChains(l2);
-            return;
-        }
+        //private void MakeIndexRelation()
+        //{
+        //    IEnumerable<Chain> q = from Dot d1 in StackMoves
+        //                           where d1.Own == Player.Computer
+        //                           from Dot d2 in StackMoves
+        //                           where
+        //                           d2.Own == d1.Own && Distance(d1, d2) == 1f ||
+        //                           d2.Own == d1.Own && Distance(d1, d2) == 1.4f
+        //                           select new Chain(d1, d2);
+        //    List<Chain> l1 = q.Distinct(new ChainsComparer()).ToList();
+        //    q = from Dot d1 in StackMoves
+        //        where d1.Own == Player.Human
+        //        from Dot d2 in StackMoves
+        //        where
+        //        d2.Own == d1.Own && Distance(d1, d2) == 1f ||
+        //        d2.Own == d1.Own && Distance(d1, d2) == 1.4f
+        //        select new Chain(d1, d2);
+        //    List<Chain> l2 = q.Distinct(new ChainsComparer()).ToList();
+        //    MakeChains(l2);
+        //    return;
+        //}
 
-        private static void MakeChains(List<Chain> l2)
-        {
-            MakeChains(l2);
-        }
+        //private static void MakeChains(List<Chain> l2)
+        //{
+        //    MakeChains(l2);
+        //}
 
         private int Counter = 0;
         private Dot DotChecked;
@@ -753,30 +753,30 @@ namespace GameCore
         /// отмена хода
         /// </summary>
         /// <param name="dot"></param>
-        //public void UndoMove1(Dot dot, bool full = false)
-        //{
-            //StackMoves.Remove(dot);
-            //List<Dot> StackMoveCopy = new List<Dot>();//создаем рабочуюю копию стека
-            //foreach (Dot d in StackMoves) StackMoveCopy.Add(GetDotCopy(d));
-            //StackMoves.Clear();//очищаем стек, в MakeMove он заполняется заново
-            //                   //сброс игрового поля
-            //for (int i = 0; i < Dots.Count; i++)
-            //{
-            //    Dots[i].Restore();
-            //}
-            ////перестраиваем поле заново
-            //for (int i = 0; i < StackMoveCopy.Count; i++)
-            //{
-            //    MakeMove(StackMoveCopy[i], StackMoveCopy[i].Own);
-            //}
-            //if (full)//если полная отмена
-            //{
-            //    ListMoves.Clear();
-            //    ListMoves.AddRange(StackMoves);
-            //    LinkDots();
-            //}
-        //}
-        public void UndoMove(Dot dot, bool full = false)//отмена хода
+        public void UndoMove(Dot dot, bool full = false)
+        {
+            StackMoves.Remove(dot);
+            List<Dot> StackMoveCopy = new List<Dot>();//создаем рабочуюю копию стека
+            foreach (Dot d in StackMoves) StackMoveCopy.Add(GetDotCopy(d));
+            StackMoves.Clear();//очищаем стек, в MakeMove он заполняется заново
+                               //сброс игрового поля
+            foreach (Dot d in Dots)
+            {
+                d.Restore();
+            }
+            //перестраиваем поле заново
+            for (int i = 0; i < StackMoveCopy.Count; i++)
+            {
+                MakeMove(StackMoveCopy[i], StackMoveCopy[i].Own);
+            }
+            if (full)//если полная отмена
+            {
+                ListMoves.Clear();
+                ListMoves.AddRange(StackMoves);
+                LinkDots();
+            }
+        }
+        public void UndoMove1(Dot dot, bool full = false)//отмена хода - паботает не корректно
         {
             int ind = IndexDot(dot.X, dot.Y);
             StackMoves.Remove(Dots[dot.X, dot.Y]);
@@ -2017,7 +2017,7 @@ ext:
                 }
             } //close CheckMove({Enemy})
             ); //close parallel.invoke
-            StopWatch($"CheckMove - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+            StopWatch($"CheckMove - {sW2.Elapsed.Milliseconds.ToString()} - {moves.FirstOrDefault()}", progress);
             #region Проверка, кто больше окружит и будет ли угроза после окружения
 
             if (moves.Count > 1)
@@ -2095,14 +2095,8 @@ ext:
                     bm = CheckVilka(Player);
                     if (bm != null)
                     {
-#if DEBUG
-                        {
-                            DebugInfo.lstDBG2.Add(bm.ToString() + " +++++> CheckPattern_vilochka ");
-                        }
-#endif
                         moves.Add(bm);
                     }
-
                 }
             }, //CheckPattern_vilochka {Player}
             () =>
@@ -2120,14 +2114,8 @@ ext:
                     bm = CheckVilka(Enemy);
                     if (bm != null)
                     {
-#if DEBUG
-                        {
-                            DebugInfo.lstDBG2.Add(bm.ToString() + " +++++> CheckPattern_vilochka ");
-                        }
-#endif
                         moves.Add(bm);
                     }
-
                 }
             }, //CheckPattern_vilochka {Enemy}
             () =>
@@ -2155,7 +2143,7 @@ ext:
             } //CheckPatternVilka1x1(Enemy)
 
             ); //close parallel.invoke
-            StopWatch($"CheckPattern_vilochka, CheckPatternVilka1x1 - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+            StopWatch($"CheckPattern_vilochka, CheckVilka, CheckPatternVilka1x1 - {sW2.Elapsed.Milliseconds.ToString()} - {moves.FirstOrDefault()}", progress);
             if (moves.Count > 0)
             {
                 CheckPatternDot(Player.Computer, Player.Human, moves);
@@ -2182,7 +2170,7 @@ ext:
                 }
             } // vilka2x2 Enemy
             ); //close parallel.invoke
-            StopWatch($"CheckPatternVilka2x2 {Player} - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+            StopWatch($"CheckPatternVilka2x2 {Player} - {sW2.Elapsed.Milliseconds.ToString()} - {moves.FirstOrDefault()}", progress);
             if (moves.Count > 0)
             {
                 CheckPatternDot(Player.Computer, Player.Human, moves);
@@ -2209,7 +2197,7 @@ ext:
             //    }
             //} //close CheckPattern {Enemy}
             //); //close parallel CheckPattern
-            StopWatch($"CheckPattern - {sW2.Elapsed.Milliseconds.ToString()}", progress);
+            StopWatch($"CheckPattern - {sW2.Elapsed.Milliseconds.ToString()} - {moves.Count}", progress);
             #endregion //CheckPattern
 
             #endregion //ParallelTasks
