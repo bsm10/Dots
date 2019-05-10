@@ -154,16 +154,12 @@ namespace DotsGame
             /// Список точек, которые блокируются этой точкой
             /// </summary>
             public List<Dot> BlokingDots { get; set; }
+
             /// <summary>
             /// Точки по соседству с єтой точкой
             /// </summary>
             public List<Dot> NeiborDots { get; set; }
-            public bool Fixed
-            {
-                get => _fixed;
-                set => _fixed = value;
-
-            }
+            public bool Fixed { get; set; }
             public int CountBlockedDots => BlokingDots.Count;
             public bool Selected { get; set; }
             public Player Own { get; set; }
@@ -215,7 +211,6 @@ namespace DotsGame
                 this.NumberPattern = NumberPattern;
                 this.Rating = Rating;
                 this.Tag = Tag;
-                //IndexRelation = IndexDot;
             }
             public Dot(Dot dot)
             {
@@ -234,7 +229,6 @@ namespace DotsGame
                 Own = Owner;
                 NumberPattern = dot.NumberPattern;
                 Rating = dot.Rating;
-                //Tuple<int, int> XY = Tuple.Create(X, Y);
             }
             /// <summary>
             /// Восстанавливаем первоначальное состояние точки
@@ -274,7 +268,6 @@ namespace DotsGame
                 return (X == dot.X) & (Y == dot.Y);
             }
             private int _IndexRel;
-            private bool _fixed;
 
             public int IndexRelation
             {
