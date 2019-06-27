@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2047
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29020.237
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dots", "Dots\Dots.csproj", "{B7DCA235-9B51-4EFF-9DCD-7821B7CFCCB4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dots-Core", "Dots\Dots-Core.csproj", "{B7DCA235-9B51-4EFF-9DCD-7821B7CFCCB4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotsNetFr", "..\DotsNetFr\DotsNetFr.csproj", "{187F4387-E4B1-478E-A40C-12A00FF02CA2}"
 EndProject
