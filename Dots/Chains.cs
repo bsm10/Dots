@@ -1,8 +1,6 @@
-﻿using DotsGame.LinksAndDots;
+﻿using DotsGame.Dots;
 using GameCore;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace DotsGame
 {

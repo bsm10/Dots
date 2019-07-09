@@ -1,14 +1,12 @@
-﻿using GameCore;
+﻿using DotsGame.Dots;
+using GameCore;
 using System;
 using System.Collections.Generic;
 //using System.Drawing;
-using System.Linq;
-using System.Reflection;
-using static DotsGame.LinksAndDots.Dot;
 
 namespace DotsGame
 {
-    namespace LinksAndDots
+    namespace Links
     {
         //******************************Link********************************************
         public class Link //: IEqualityComparer<Links>
@@ -91,6 +89,9 @@ namespace DotsGame
             }
 
         }
+    }
+    namespace Dots
+    {
         //*********************************Dot******************************************
         public class ComparerDots : IComparer<Dot>
         {
@@ -172,13 +173,6 @@ namespace DotsGame
                 InPattern,
                 MoveDot
             }
-            public enum Player
-            {
-                None,
-                Human,
-                Computer
-            }
-
             public StateDotInPattern StateDot { get; set; }
             //public bool InPattern { get; set; }
             //public bool InPatternMoveDot { get; set; }
@@ -296,4 +290,5 @@ namespace DotsGame
             public int Y { get; set; }
         }
     }
+
 }

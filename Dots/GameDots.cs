@@ -1,6 +1,7 @@
 ﻿using DotsGame;
 using DotsGame.Chains;
-using DotsGame.LinksAndDots;
+using DotsGame.Dots;
+using DotsGame.Links;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,7 +10,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using static DotsGame.LinksAndDots.Dot;
 
 namespace DotsGame
 {
@@ -62,6 +62,12 @@ namespace DotsGame
 }
 namespace GameCore
 {
+    public enum Player
+    {
+        None,
+        Human,
+        Computer
+    }
     public class ListDots : List<Dot>
     {
         public ListDots() : base() { }
@@ -2073,8 +2079,10 @@ ext:
                 }
             } //close CheckMove({Enemy})
             ); //close parallel.invoke
+#if DEBUG
             StopWatch($"CheckMove - {sW2.Elapsed.Milliseconds.ToString()} - {moves.FirstOrDefault()}", progress);
-            #region Проверка, кто больше окружит и будет ли угроза после окружения
+#endif
+#region Проверка, кто больше окружит и будет ли угроза после окружения
 
             if (moves.Count > 1)
             {
@@ -2094,8 +2102,8 @@ ext:
             {
                 return moves;
             }
-            #endregion Проверка
-            #endregion CheckMove
+#endregion Проверка
+#endregion CheckMove
             //bm = CheckPatternVilka1x1(Player);
             //if (bm != null)
             //{
@@ -2107,7 +2115,7 @@ ext:
             //    moves.Add(bm);
             //}
 
-            #region CheckPattern_vilochka, CheckPatternVilka1x1->проверяем ходы на два вперед на гарантированное окружение
+#region CheckPattern_vilochka, CheckPatternVilka1x1->проверяем ходы на два вперед на гарантированное окружение
             StartWatch($"CheckPattern_vilochka, CheckPatternVilka1x1... ", progress);
             //            bm = CheckVilka(Player);
             //            if (bm != null)
@@ -2198,15 +2206,17 @@ ext:
                 }
             } //CheckPatternVilka1x1(Enemy)
             ); //close parallel.invoke
+            #if DEBUG
             StopWatch($"CheckPattern_vilochka, CheckVilka, CheckPatternVilka1x1 - {sW2.Elapsed.Milliseconds.ToString()} - {moves.FirstOrDefault()}", progress);
+            #endif 
             if (moves.Count > 0)
             {
                 CheckPatternDot(Player.Computer, Player.Human, moves);
                 return moves;
             }
-            #endregion
+#endregion
 
-            #region CheckPatternVilkaNextMove
+#region CheckPatternVilkaNextMove
             StartWatch($"CheckPatternVilkaNextMove... ", progress);
             bm = CheckPatternVilkaNextMove(Player);
             if (bm != null)
@@ -2243,16 +2253,18 @@ ext:
             //    }
             //}
             //);
+#if DEBUG
             StopWatch($"CheckPatternVilkaNextMove - {sW2.Elapsed.Milliseconds.ToString()} - {moves.FirstOrDefault()}", progress);
+#endif
             if (moves.Count > 0)
             {
                 CheckPatternDot(Player.Computer, Player.Human, moves);
                 return moves;
             }
-            #endregion
+#endregion
 
 
-            #region Check vilka2x2
+#region Check vilka2x2
             StartWatch($"CheckPatternVilka2x2 {Player} ...", progress);
             Parallel.Invoke(
             () =>
@@ -2272,14 +2284,16 @@ ext:
                 }
             } // vilka2x2 Enemy
             ); //close parallel.invoke
+            #if DEBUG
             StopWatch($"CheckPatternVilka2x2 {Player} - {sW2.Elapsed.Milliseconds.ToString()} - {moves.FirstOrDefault()}", progress);
+            #endif
             if (moves.Count > 0)
             {
                 CheckPatternDot(Player.Computer, Player.Human, moves);
                 return moves;
             }
-            #endregion
-            #region CheckPattern
+#endregion
+#region CheckPattern
             //moves.AddRange(CheckPattern(Player));
             StartWatch($"CheckPattern... ", progress);
             moves.AddRange(CheckPattern(Player, Enemy));
@@ -2299,11 +2313,13 @@ ext:
             //    }
             //} //close CheckPattern {Enemy}
             //); //close parallel CheckPattern
+#if DEBUG
             StopWatch($"CheckPattern - {sW2.Elapsed.Milliseconds.ToString()} - {moves.Count}", progress);
-            #endregion //CheckPattern
+#endif
+#endregion //CheckPattern
 
-            #endregion //ParallelTasks
-            #region CheckPatternVilkaNextMove пока тормозит сильно - переработать!
+#endregion //ParallelTasks
+#region CheckPatternVilkaNextMove пока тормозит сильно - переработать!
             // bm = CheckPatternVilkaNextMove(StateOwn.Computer);
             // if (bm != null)
             // {
@@ -2324,8 +2340,8 @@ ext:
             // sW2.Reset();
             //#endif
             // #endregion
-            #endregion
-            #region CheckPatternMove
+#endregion
+#region CheckPatternMove
             //moves.AddRange(CheckPatternMove(Player));
             //moves.AddRange(CheckPatternMove(Enemy));
 
@@ -2336,7 +2352,7 @@ ext:
             // sW2.Reset();
             //#endif
 
-            #endregion
+#endregion
             List<Dot> _result = moves.Where(d => d != null).Distinct(new DotEqbyRating()).ToList();
             return _result;
         }
@@ -2397,7 +2413,7 @@ ext:
         const int MAX_COUNTMOVES = 5;
         int recursion_depth;
         Dot tempmove;
-        private GameDots gameDots_Copy;
+        //private GameDots gameDots_Copy;
 
         //===================================================================================================================
         /// <summary>
@@ -2444,21 +2460,21 @@ ext:
             if (lst_best_move.Count > 0)
             {
                 int progress_counter = 0;
-                #region Cycle
+#region Cycle
                 for (int i = 0; i < lst_best_move.Count; i++)
                 {
                     Dot move = lst_best_move[i];
                     progress_counter++;
                     //StartWatch($"*****Play - {Player}, recursion_depth: {recursion_depth}, counter_moves: {counter_moves} ******", progress);
-                    if (progress != null) progress.Report("Wait..." + progress_counter * 100 / lst_best_move.Count + "%");
-                    #region ходим в проверяемые точки
+                    progress?.Report("Wait..." + progress_counter * 100 / lst_best_move.Count + "%");
+#region ходим в проверяемые точки
                     if (counter_moves > MAX_COUNTMOVES) break;
                     //**************делаем ход***********************************
                     res_last_move = MakeMove(move, Player);
                     Lst_moves.Add(move);
                     counter_moves++;
 
-                    #region проверка на окружение
+#region проверка на окружение
 
                     if (Goal.Player == Player)
                     {
@@ -2479,15 +2495,15 @@ ext:
                         move.Rating = -1;
                         continue;
                     }
-                    #endregion
-                    #region Debug statistic
+#endregion
+#region Debug statistic
 #if DEBUG
                     DebugInfo.lstDBG1.Add(move.ToString());//(move.Own + " -" + move.x + ":" + move.y);
                     DebugInfo.StringMSG = "Ходов проверено: " + counter_moves +
                     "\r\n проверка вокруг точки " + LastMove +
                     "\r\n время поиска " + stopWatch.ElapsedMilliseconds;
 #endif
-                    #endregion
+#endregion
                     //теперь ходит другой игрок ===========================================================================
 
                     Player result = Play(Enemy);
@@ -2535,19 +2551,19 @@ ext:
                     }
 
 
-                    #region Debug
+#region Debug
 #if DEBUG
                     //remove from list
                     if (DebugInfo.lstDBG1.Count > 0) DebugInfo.lstDBG1.RemoveAt(DebugInfo.lstDBG1.Count - 1);
 #endif
-                    #endregion
+#endregion
 
                 }
-                #endregion
+#endregion
             }
-            #endregion
+#endregion
             best_move = lst_best_move.Where(dt => dt.Rating == lst_best_move.Min(d => d.Rating)).ElementAtOrDefault(0);
-            progress.Report($"Move on {best_move}");
+            progress?.Report($"Move on {best_move}");
             return Player.None;
         }//----------------------------Play-----------------------------------------------------
 
